@@ -1,0 +1,10 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+blob-report/
+fixture/node_modules/
+fixture/dist/
+fixture/.astro/
+fixture/inline-review.json
+inline-review.json

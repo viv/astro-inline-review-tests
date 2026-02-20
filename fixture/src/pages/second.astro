@@ -1,0 +1,52 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Second Page — Fixture Site">
+  <h1>Second Page</h1>
+
+  <p id="second-intro">
+    This is the second page of the fixture site. It exists to test multi-page
+    annotation scoping. Annotations created here should not appear as highlights
+    on the home page, and vice versa. The badge count on the FAB should reflect
+    only annotations for the current page.
+  </p>
+
+  <h2>Distinct Content</h2>
+
+  <p id="second-unique">
+    The wallaby bounces across the red desert at dawn. This sentence is unique
+    to the second page and does not appear anywhere on the home page. Tests can
+    use this text to verify that annotations are correctly scoped by URL and
+    that the All Pages tab in the review panel groups content appropriately.
+  </p>
+
+  <p id="second-technical">
+    Multi-page annotation systems must track which page each annotation belongs
+    to. The page URL serves as the scoping key. When navigating between pages,
+    the client must update the visible highlights and badge count to reflect
+    only the current page's annotations whilst maintaining the full dataset in
+    storage for the All Pages view and markdown export.
+  </p>
+
+  <h2>More Content</h2>
+
+  <p>
+    Additional content on the second page to ensure it has enough substance for
+    testing. Page notes added here should be scoped to the /second URL and should
+    appear separately from home page notes in both the panel and the export.
+  </p>
+
+  <p>
+    Further padding to make the second page scrollable as well. Some multi-page
+    tests may need to verify scroll behaviour on secondary pages, so having
+    enough content here is important for comprehensive coverage.
+  </p>
+
+  <p>
+    The second page concludes with this paragraph. Tests verifying the export
+    format should see this page listed under its own heading with its own set of
+    annotations and page notes, separated from the home page by a horizontal
+    rule in the markdown output.
+  </p>
+</Base>

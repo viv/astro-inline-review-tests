@@ -1,0 +1,98 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Home — Fixture Site">
+  <h1>Welcome to the Fixture Site</h1>
+
+  <p id="intro-paragraph">
+    This is the introduction paragraph of the fixture site. It contains enough
+    text to be a realistic target for text selection and annotation testing. The
+    content is deliberately predictable so that automated tests can reliably
+    find and select specific phrases.
+  </p>
+
+  <h2>About This Page</h2>
+
+  <p id="about-paragraph">
+    The quick brown fox jumps over the lazy dog. This classic pangram is used
+    here because it contains every letter of the alphabet and is instantly
+    recognisable. Annotations created on this paragraph should persist across
+    page reloads and be scoped to the home page URL.
+  </p>
+
+  <p id="technical-paragraph">
+    Software engineering requires careful attention to detail. Every function
+    should have a clear purpose, every module a well-defined boundary. Testing
+    is not an afterthought but an integral part of the development process that
+    guides design decisions and catches regressions early.
+  </p>
+
+  <h2>Cross-Element Section</h2>
+
+  <p id="cross-element-start">
+    This paragraph starts a thought that continues
+  </p>
+  <p id="cross-element-end">
+    into this second paragraph, creating a cross-element selection opportunity.
+  </p>
+
+  <h2>Special Characters Section</h2>
+
+  <p id="special-chars-paragraph">
+    Here are some special characters: "quoted text" and <angle brackets> and
+    ampersands & symbols. Unicode works too: café, naïve, résumé. These should
+    all be handled gracefully by the annotation system without encoding issues.
+  </p>
+
+  <h2>Long Content Section</h2>
+
+  <p id="long-paragraph">
+    This is a deliberately long paragraph designed to test how the system handles
+    extended text selections. When a user selects a very long passage of text,
+    the annotation system needs to store the full selection but may truncate the
+    preview in the UI for readability. The range serialisation must capture the
+    exact start and end positions regardless of length. This paragraph continues
+    with more content to ensure it exceeds the typical preview length. Additional
+    sentences are included here to pad the content further. The total length of
+    this paragraph should comfortably exceed five hundred characters when fully
+    rendered in the browser. We keep adding more text to make absolutely sure
+    that the long passage selection test has enough content to work with. This
+    should now be well over the threshold needed for testing purposes.
+  </p>
+
+  <h2>Additional Content for Scrolling</h2>
+
+  <p>
+    This section exists purely to make the page long enough to require scrolling.
+    Scroll-related tests need content below the fold to verify that the FAB
+    maintains its fixed position and that scroll-to-highlight functionality works
+    correctly when annotations are off-screen.
+  </p>
+
+  <p>
+    More padding content follows. The page needs to be significantly taller than
+    the viewport to test scroll behaviours. Each paragraph adds height and creates
+    a realistic page structure that mirrors how real websites are laid out.
+  </p>
+
+  <p>
+    Even more content here to ensure scrollability. Tests that verify the FAB
+    stays fixed during scroll, or that clicking an annotation in the panel scrolls
+    to the correct highlight, all depend on having enough vertical content to make
+    the page scrollable.
+  </p>
+
+  <p>
+    A fourth padding paragraph. Some tests check that annotations created on
+    content that is currently off-screen can be navigated to via the review panel.
+    This requires the target content to be reliably below the viewport fold.
+  </p>
+
+  <p>
+    Final padding paragraph on the home page. This completes the scrollable area
+    and gives tests a known endpoint. The fixture content is now complete with
+    identifiable paragraphs, special characters, cross-element boundaries, and
+    sufficient length for scroll-based interactions.
+  </p>
+</Base>
