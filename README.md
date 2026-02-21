@@ -1,8 +1,8 @@
 # astro-inline-review-tests
 
-Playwright acceptance test suite for [astro-inline-review](https://github.com/viv/astro-inline-review) — the bridge between human reviewers and coding agents for Astro sites.
+Playwright acceptance test suite for [astro-inline-review](https://github.com/viv/astro-inline-review), the bridge between human reviewers and coding agents for Astro sites.
 
-This repo is kept separate from the main package so the acceptance tests can exercise the integration as an external consumer would — installing from npm and running against a real Astro dev server.
+This repo is kept separate from the main package so the acceptance tests can exercise the integration as an external consumer would, installing from npm and running against a real Astro dev server.
 
 ## Prerequisites
 
