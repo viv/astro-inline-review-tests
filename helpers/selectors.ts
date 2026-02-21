@@ -31,6 +31,7 @@ export const SELECTORS = {
   tabThisPage: '[data-air-el="tab-this-page"]',
   tabAllPages: '[data-air-el="tab-all-pages"]',
   annotationItem: '[data-air-el="annotation-item"]',
+  elementAnnotationItem: '[data-air-el="element-annotation-item"]',
   pageNoteItem: '[data-air-el="page-note-item"]',
   pageNoteAdd: '[data-air-el="page-note-add"]',
   pageNoteTextarea: '[data-air-el="page-note-textarea"]',
@@ -41,6 +42,9 @@ export const SELECTORS = {
   clearAllButton: '[data-air-el="clear-all"]',
   toast: '[data-air-el="toast"]',
   highlight: 'mark[data-air-id]',
+  elementHighlight: '[data-air-element-id]',
+  inspectorOverlay: '[data-air-el="inspector-overlay"]',
+  inspectorLabel: '[data-air-el="inspector-label"]',
 } as const;
 
 /**
@@ -115,4 +119,32 @@ export function getHighlights(page: Page): Locator {
  */
 export function getHighlightById(page: Page, annotationId: string): Locator {
   return page.locator(`mark[data-air-id="${annotationId}"]`);
+}
+
+/**
+ * Get all element highlights in the light DOM (elements with data-air-element-id).
+ */
+export function getElementHighlights(page: Page): Locator {
+  return page.locator(SELECTORS.elementHighlight);
+}
+
+/**
+ * Get an element highlight by annotation ID.
+ */
+export function getElementHighlightById(page: Page, annotationId: string): Locator {
+  return page.locator(`[data-air-element-id="${annotationId}"]`);
+}
+
+/**
+ * Get the inspector overlay (only present during Alt+hover).
+ */
+export function getInspectorOverlay(page: Page): Locator {
+  return page.locator(SELECTORS.inspectorOverlay);
+}
+
+/**
+ * Get the inspector label (child of inspector overlay).
+ */
+export function getInspectorLabel(page: Page): Locator {
+  return page.locator(SELECTORS.inspectorLabel);
 }

@@ -1,5 +1,5 @@
 import { type Page, expect } from '@playwright/test';
-import { shadowLocator, shadowQueryCount, getHighlights, SELECTORS } from './selectors';
+import { shadowLocator, shadowQueryCount, getHighlights, getElementHighlights, SELECTORS } from './selectors';
 
 /**
  * Custom assertion helpers for astro-inline-review acceptance tests.
@@ -162,6 +162,48 @@ export async function expectShadowElementCount(
 ): Promise<void> {
   const actual = await shadowQueryCount(page, selector);
   expect(actual, `Expected ${count} elements matching "${selector}", got ${actual}`).toBe(count);
+}
+
+/**
+ * Assert that an element has a data-air-element-id highlight attribute.
+ */
+export async function expectElementHighlightExists(page: Page, elementSelector: string): Promise<void> {
+  await expect.poll(async () => {
+    return page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      return el?.hasAttribute('data-air-element-id') ?? false;
+    }, elementSelector);
+  }, {
+    message: `Expected element "${elementSelector}" to have data-air-element-id attribute`,
+    timeout: 5000,
+  }).toBe(true);
+}
+
+/**
+ * Assert that an element does NOT have a data-air-element-id highlight attribute.
+ */
+export async function expectElementHighlightNotExists(page: Page, elementSelector: string): Promise<void> {
+  const hasAttr = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    return el?.hasAttribute('data-air-element-id') ?? false;
+  }, elementSelector);
+  expect(hasAttr, `Expected element "${elementSelector}" to NOT have data-air-element-id`).toBe(false);
+}
+
+/**
+ * Assert the total number of element highlights on the page.
+ */
+export async function expectElementHighlightCount(page: Page, count: number): Promise<void> {
+  const highlights = getElementHighlights(page);
+  await expect(highlights).toHaveCount(count);
+}
+
+/**
+ * Assert the number of element annotation items in the panel.
+ */
+export async function expectElementAnnotationItemCount(page: Page, count: number): Promise<void> {
+  const items = shadowLocator(page, SELECTORS.elementAnnotationItem);
+  await expect(items).toHaveCount(count);
 }
 
 /**

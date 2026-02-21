@@ -65,8 +65,8 @@ test.describe('Integration basics', () => {
     const technicalText = await page.locator('#technical-paragraph').textContent();
     expect(technicalText).toContain('Software engineering requires careful attention to detail');
 
-    // Verify nav links are intact
+    // Verify nav links are intact (3 original + 2 in test-nav for element annotation testing)
     const navLinks = page.locator('nav a');
-    await expect(navLinks).toHaveCount(3);
+    await expect(navLinks).toHaveCount(5);
   });
 });

@@ -61,6 +61,33 @@ import Base from '../layouts/Base.astro';
     should now be well over the threshold needed for testing purposes.
   </p>
 
+  <h2>Element Annotation Targets</h2>
+
+  <section id="hero-section" class="hero-section" data-testid="hero">
+    <img id="hero-image" class="hero-image" src="https://placehold.co/600x200" alt="Hero banner" />
+    <button id="cta-button" class="btn-primary" type="button">Get Started</button>
+  </section>
+
+  <div class="card-container" data-testid="card-container">
+    <div class="card" data-testid="feature-card">
+      <h3>Feature Card</h3>
+      <p>This card is a target for element annotation testing.</p>
+    </div>
+  </div>
+
+  <nav id="test-nav" class="test-navigation" role="navigation" aria-label="Test navigation">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/second" class="nav-link">Second Page</a>
+  </nav>
+
+  <section id="simple-section" class="simple-section">
+    A simple section for element annotation testing.
+  </section>
+
+  <div class="bare-div">
+    <span>A bare div with no id or data-testid — tests positional selector generation.</span>
+  </div>
+
   <h2>Additional Content for Scrolling</h2>
 
   <p>

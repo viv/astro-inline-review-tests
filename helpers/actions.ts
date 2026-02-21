@@ -412,3 +412,76 @@ export async function waitForIntegration(page: Page): Promise<void> {
 export async function getClipboardText(page: Page): Promise<string> {
   return page.evaluate(() => navigator.clipboard.readText());
 }
+
+/**
+ * Hold the Alt key down (activates inspector mode).
+ */
+export async function holdAlt(page: Page): Promise<void> {
+  await page.keyboard.down('Alt');
+}
+
+/**
+ * Release the Alt key (deactivates inspector mode).
+ */
+export async function releaseAlt(page: Page): Promise<void> {
+  await page.keyboard.up('Alt');
+}
+
+/**
+ * Alt+click an element to create an element annotation.
+ * Pre-scrolls into view and waits for scroll events to settle
+ * (mirrors selectText's approach — scrollIntoView fires async scroll
+ * events that would hide the popup if they arrive after it's shown).
+ */
+export async function altClickElement(page: Page, selector: string): Promise<void> {
+  // Scroll element into view first (use .first() to avoid strict mode
+  // violation when selector matches multiple elements — page.click()
+  // already resolves to the first match)
+  await page.locator(selector).first().scrollIntoViewIfNeeded();
+
+  // Wait for scroll events to settle (same pattern as selectText)
+  await page.waitForTimeout(100);
+
+  // Now Alt+click — element is already in view, so no additional scroll
+  await page.keyboard.down('Alt');
+  await page.click(selector, { modifiers: ['Alt'] });
+  await page.keyboard.up('Alt');
+}
+
+/**
+ * Create an element annotation: Alt+click element, wait for popup, type note, save.
+ * Waits for the full save round-trip before returning.
+ */
+export async function createElementAnnotation(
+  page: Page,
+  elementSelector: string,
+  note: string,
+): Promise<void> {
+  await altClickElement(page, elementSelector);
+
+  // Wait for popup to appear
+  const popup = shadowLocator(page, SELECTORS.popup);
+  await popup.waitFor({ state: 'visible' });
+
+  // Type the note
+  const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+  await textarea.fill(note);
+
+  // Click save and wait for API POST
+  const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'POST' &&
+        resp.ok,
+    ),
+    saveBtn.click(),
+  ]);
+
+  // Wait for popup to dismiss
+  await popup.waitFor({ state: 'hidden' });
+
+  // Allow one tick for highlight application
+  await page.waitForTimeout(50);
+}
