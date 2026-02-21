@@ -8,30 +8,38 @@ import { type Page, type Locator } from '@playwright/test';
  *
  * All UI (FAB, panel, popup) lives inside the shadow root.
  * Highlights (<mark>) live in the light DOM with data-air-id attributes.
+ *
+ * Selectors use data-air-el attributes — the component's stable automation
+ * contract — rather than internal CSS class names. This keeps the tests
+ * decoupled from styling implementation details.
  */
 
 /** The shadow DOM host element ID */
 export const HOST_ID = 'astro-inline-review-host';
 
-/** CSS class/selector constants used by the integration */
+/** Stable selectors using data-air-el attributes (automation contract) */
 export const SELECTORS = {
   host: `#${HOST_ID}`,
-  fab: '.air-fab',
-  fabBadge: '.air-fab-badge',
-  panel: '.air-panel',
-  panelClose: '.air-panel-close',
-  popup: '.air-popup',
-  popupTextarea: '.air-popup textarea',
-  popupSave: '.air-popup-save',
-  popupCancel: '.air-popup-cancel',
-  tabThisPage: '[data-tab="this-page"]',
-  tabAllPages: '[data-tab="all-pages"]',
-  annotationItem: '.air-annotation-item',
-  pageNoteItem: '.air-page-note-item',
-  pageNoteAdd: '.air-page-note-add',
-  pageNoteTextarea: '.air-page-note-textarea',
-  clearAllButton: '.air-clear-all',
-  toast: '.air-toast',
+  fab: '[data-air-el="fab"]',
+  fabBadge: '[data-air-el="badge"]',
+  panel: '[data-air-el="panel"]',
+  popup: '[data-air-el="popup"]',
+  popupTextarea: '[data-air-el="popup-textarea"]',
+  popupSave: '[data-air-el="popup-save"]',
+  popupCancel: '[data-air-el="popup-cancel"]',
+  popupDelete: '[data-air-el="popup-delete"]',
+  tabThisPage: '[data-air-el="tab-this-page"]',
+  tabAllPages: '[data-air-el="tab-all-pages"]',
+  annotationItem: '[data-air-el="annotation-item"]',
+  pageNoteItem: '[data-air-el="page-note-item"]',
+  pageNoteAdd: '[data-air-el="page-note-add"]',
+  pageNoteTextarea: '[data-air-el="page-note-textarea"]',
+  pageNoteSave: '[data-air-el="page-note-save"]',
+  pageNoteCancel: '[data-air-el="page-note-cancel"]',
+  pageNoteEdit: '[data-air-el="page-note-edit"]',
+  pageNoteDelete: '[data-air-el="page-note-delete"]',
+  clearAllButton: '[data-air-el="clear-all"]',
+  toast: '[data-air-el="toast"]',
   highlight: 'mark[data-air-id]',
 } as const;
 

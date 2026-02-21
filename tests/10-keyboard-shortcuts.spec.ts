@@ -78,7 +78,7 @@ test.describe('Keyboard shortcuts', () => {
     const textareaVisible = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return false;
-      const textarea = host.shadowRoot.querySelector('.air-page-note-textarea');
+      const textarea = host.shadowRoot.querySelector('[data-air-el="page-note-textarea"]');
       return textarea !== null;
     });
 

@@ -26,19 +26,22 @@ export async function expectHostNotExists(page: Page): Promise<void> {
  * Assert that a highlight mark exists for the given text.
  */
 export async function expectHighlightExists(page: Page, text: string): Promise<void> {
-  const highlights = getHighlights(page);
-  const allHighlights = await highlights.all();
+  // Use expect.poll for auto-retry — highlights are applied asynchronously after the API call
+  await expect.poll(async () => {
+    const highlights = getHighlights(page);
+    const allHighlights = await highlights.all();
 
-  let found = false;
-  for (const highlight of allHighlights) {
-    const content = await highlight.textContent();
-    if (content?.includes(text)) {
-      found = true;
-      break;
+    for (const highlight of allHighlights) {
+      const content = await highlight.textContent();
+      if (content?.includes(text)) {
+        return true;
+      }
     }
-  }
-
-  expect(found, `Expected highlight containing "${text}" to exist`).toBe(true);
+    return false;
+  }, {
+    message: `Expected highlight containing "${text}" to exist`,
+    timeout: 5000,
+  }).toBe(true);
 }
 
 /**
@@ -73,19 +76,21 @@ export async function expectBadgeCount(page: Page, count: number): Promise<void>
 }
 
 /**
- * Assert the review panel is open (visible).
+ * Assert the review panel is open.
+ * Uses the data-air-state attribute rather than CSS visibility.
  */
 export async function expectPanelOpen(page: Page): Promise<void> {
   const panel = shadowLocator(page, SELECTORS.panel);
-  await expect(panel).toBeVisible();
+  await expect(panel).toHaveAttribute('data-air-state', 'open');
 }
 
 /**
- * Assert the review panel is closed (not visible).
+ * Assert the review panel is closed.
+ * Uses the data-air-state attribute rather than CSS visibility.
  */
 export async function expectPanelClosed(page: Page): Promise<void> {
   const panel = shadowLocator(page, SELECTORS.panel);
-  await expect(panel).not.toBeVisible();
+  await expect(panel).toHaveAttribute('data-air-state', 'closed');
 }
 
 /**
@@ -93,7 +98,7 @@ export async function expectPanelClosed(page: Page): Promise<void> {
  */
 export async function expectPopupVisible(page: Page): Promise<void> {
   const popup = shadowLocator(page, SELECTORS.popup);
-  await expect(popup).toBeVisible();
+  await expect(popup).toHaveAttribute('data-air-state', 'visible');
 }
 
 /**
@@ -101,7 +106,7 @@ export async function expectPopupVisible(page: Page): Promise<void> {
  */
 export async function expectPopupHidden(page: Page): Promise<void> {
   const popup = shadowLocator(page, SELECTORS.popup);
-  await expect(popup).not.toBeVisible();
+  await expect(popup).toHaveAttribute('data-air-state', 'hidden');
 }
 
 /**

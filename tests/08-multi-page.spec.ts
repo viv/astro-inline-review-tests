@@ -86,7 +86,7 @@ test.describe('Multi-page behaviour', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 
@@ -129,7 +129,7 @@ test.describe('Multi-page behaviour', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 

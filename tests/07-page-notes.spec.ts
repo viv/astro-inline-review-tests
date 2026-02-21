@@ -28,7 +28,7 @@ test.describe('Page notes', () => {
     const noteText = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const noteItem = host.shadowRoot.querySelector('.air-page-note-item');
+      const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
     });
 
@@ -40,21 +40,25 @@ test.describe('Page notes', () => {
     await addPageNote(page, 'Original page note');
     await expectPageNoteCount(page, 1);
 
-    // Click on the note to edit it
-    const noteItem = shadowLocator(page, SELECTORS.pageNoteItem).first();
-    await noteItem.click();
+    // Click the Edit button on the note
+    const editBtn = shadowLocator(page, SELECTORS.pageNoteEdit).first();
+    await editBtn.click();
 
-    // Should show edit UI
+    // Should show edit UI with textarea
     const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
     await textarea.clear();
     await textarea.fill('Edited page note');
-    await textarea.press('Enter');
+
+    // Click save
+    const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
+    await saveBtn.click();
+    await page.waitForTimeout(300);
 
     // Verify the edit
     const noteText = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const noteItem = host.shadowRoot.querySelector('.air-page-note-item');
+      const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
     });
 
@@ -66,16 +70,9 @@ test.describe('Page notes', () => {
     await addPageNote(page, 'Note to delete');
     await expectPageNoteCount(page, 1);
 
-    // Find and click delete on the page note
-    await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return;
-      const deleteBtn =
-        host.shadowRoot.querySelector('.air-page-note-delete') ||
-        host.shadowRoot.querySelector('.air-page-note-item [data-action="delete"]') ||
-        host.shadowRoot.querySelector('.air-page-note-item button[aria-label*="delete" i]');
-      if (deleteBtn) (deleteBtn as HTMLElement).click();
-    });
+    // Click delete button on the page note
+    const deleteBtn = shadowLocator(page, SELECTORS.pageNoteDelete).first();
+    await deleteBtn.click();
 
     await page.waitForTimeout(300);
     await expectPageNoteCount(page, 0);
@@ -97,7 +94,7 @@ test.describe('Page notes', () => {
     const noteText = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const noteItem = host.shadowRoot.querySelector('.air-page-note-item');
+      const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
     });
 
@@ -151,8 +148,9 @@ test.describe('Page notes', () => {
     await addBtn.click();
 
     const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
-    // Leave textarea empty and press Enter
-    await textarea.press('Enter');
+    // Leave textarea empty and click save
+    const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
+    await saveBtn.click();
 
     await page.waitForTimeout(300);
 
@@ -174,7 +172,7 @@ test.describe('Page notes', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 

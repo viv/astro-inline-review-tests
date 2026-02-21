@@ -78,9 +78,20 @@ test.describe('Highlights', () => {
     const textarea = shadowLocator(page, SELECTORS.popupTextarea);
     await textarea.fill('Cross-element note');
 
+    // Wait for the full save round-trip (API POST + highlight application)
     const saveBtn = shadowLocator(page, SELECTORS.popupSave);
-    await saveBtn.click();
+    await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/__inline-review/api/annotations') &&
+          resp.request().method() === 'POST' &&
+          resp.ok,
+      ),
+      saveBtn.click(),
+    ]);
     await popup.waitFor({ state: 'hidden' });
+    // Allow time for applyHighlight + fallback context matching
+    await page.waitForTimeout(200);
 
     // Should create multiple <mark> elements with the same data-air-id
     const highlights = getHighlights(page);
@@ -107,7 +118,7 @@ test.describe('Highlights', () => {
     const textareaValue = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const textarea = host.shadowRoot.querySelector('.air-popup textarea') as HTMLTextAreaElement;
+      const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return textarea?.value ?? null;
     });
 
@@ -140,7 +151,7 @@ test.describe('Highlights', () => {
     const updatedValue = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const ta = host.shadowRoot.querySelector('.air-popup textarea') as HTMLTextAreaElement;
+      const ta = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return ta?.value ?? null;
     });
 
@@ -163,8 +174,7 @@ test.describe('Highlights', () => {
       if (!host?.shadowRoot) return false;
       // Try common selectors for delete button
       const btn =
-        host.shadowRoot.querySelector('.air-popup-delete') ||
-        host.shadowRoot.querySelector('.air-popup [data-action="delete"]') ||
+        host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
         host.shadowRoot.querySelector('button[aria-label*="delete" i]');
       if (btn) {
         (btn as HTMLElement).click();

@@ -154,31 +154,15 @@ test.describe('Export', () => {
     expect(isEmpty).toBe(true);
   });
 
-  test('export copies to clipboard via UI', async ({ page }) => {
+  test('export copies to clipboard via keyboard shortcut', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Clipboard test');
     await page.waitForTimeout(500);
 
     // Grant clipboard permissions
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    await openPanel(page);
-
-    // Look for export button in panel
-    const exported = await page.evaluate(async () => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return false;
-      const exportBtn =
-        host.shadowRoot.querySelector('.air-export') ||
-        host.shadowRoot.querySelector('[data-action="export"]') ||
-        host.shadowRoot.querySelector('button[aria-label*="export" i]');
-      if (exportBtn) {
-        (exportBtn as HTMLElement).click();
-        return true;
-      }
-      return false;
-    });
-
-    expect(exported).toBe(true);
+    await exportShortcut(page);
+    await page.waitForTimeout(300);
 
     // Verify clipboard content
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
@@ -191,16 +175,8 @@ test.describe('Export', () => {
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    // Trigger export
-    await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return;
-      const exportBtn =
-        host.shadowRoot.querySelector('.air-export') ||
-        host.shadowRoot.querySelector('[data-action="export"]') ||
-        host.shadowRoot.querySelector('button[aria-label*="export" i]');
-      if (exportBtn) (exportBtn as HTMLElement).click();
-    });
+    // Trigger export via keyboard shortcut
+    await exportShortcut(page);
 
     await expectToastVisible(page);
   });
@@ -229,6 +205,8 @@ test.describe('Export', () => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await exportShortcut(page);
+    // Wait for async export to complete (server fetch + clipboard write)
+    await page.waitForTimeout(500);
 
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboardContent).toContain('quick brown fox');

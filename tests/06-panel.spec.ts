@@ -30,11 +30,14 @@ test.describe('Review panel', () => {
     const panel = shadowLocator(page, SELECTORS.panel);
     await expect(panel).toBeVisible();
 
+    // Wait for slide-in transition to complete (0.3s CSS transition)
+    await page.waitForTimeout(400);
+
     // Panel should be positioned on the right side of the viewport
     const panelRect = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel') as HTMLElement;
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       if (!panel) return null;
       const rect = panel.getBoundingClientRect();
       return { right: rect.right, left: rect.left, width: rect.width };
@@ -54,7 +57,7 @@ test.describe('Review panel', () => {
     const panelWidth = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel') as HTMLElement;
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       return panel?.getBoundingClientRect().width ?? null;
     });
 
@@ -108,7 +111,7 @@ test.describe('Review panel', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 
@@ -125,7 +128,7 @@ test.describe('Review panel', () => {
     const tabText = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const tab = host.shadowRoot.querySelector('[data-tab="this-page"]');
+      const tab = host.shadowRoot.querySelector('[data-air-el="tab-this-page"]');
       return tab?.textContent ?? null;
     });
 
@@ -194,12 +197,12 @@ test.describe('Review panel', () => {
     const sectionOrder = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       if (!panel) return null;
 
-      // Look for section identifiers
-      const children = Array.from(panel.querySelectorAll('[class*="page-note"], [class*="annotation"]'));
-      return children.map((el) => el.className);
+      // Look for data-air-el items (page notes and annotations)
+      const children = Array.from(panel.querySelectorAll('[data-air-el="page-note-item"], [data-air-el="annotation-item"]'));
+      return children.map((el) => el.getAttribute('data-air-el'));
     });
 
     expect(sectionOrder).not.toBeNull();
@@ -212,7 +215,7 @@ test.describe('Review panel', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 
@@ -237,7 +240,7 @@ test.describe('Review panel', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 
@@ -271,12 +274,12 @@ test.describe('Review panel', () => {
     const panelWidth = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel') as HTMLElement;
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       return panel?.getBoundingClientRect().width ?? null;
     });
 
-    // Panel should be full viewport width on mobile
-    expect(panelWidth).toBe(375);
+    // Panel should be full viewport width on mobile (allow sub-pixel rounding)
+    expect(panelWidth).toBeCloseTo(375, 0);
   });
 
   test('Clear All button exists and requires confirmation', async ({ page }) => {
@@ -293,7 +296,7 @@ test.describe('Review panel', () => {
     const panelContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const panel = host.shadowRoot.querySelector('.air-panel');
+      const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
     });
 
@@ -315,17 +318,8 @@ test.describe('Review panel', () => {
     const clearAllBtn = shadowLocator(page, SELECTORS.clearAllButton);
     await clearAllBtn.click();
 
-    // Confirm the clear action
-    // Look for confirm button
-    await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return;
-      const confirmBtn =
-        host.shadowRoot.querySelector('.air-clear-confirm') ||
-        host.shadowRoot.querySelector('[data-action="confirm-clear"]') ||
-        host.shadowRoot.querySelector('.air-panel button:last-of-type');
-      if (confirmBtn) (confirmBtn as HTMLElement).click();
-    });
+    // Two-click confirmation: click the same button again to confirm
+    await clearAllBtn.click();
 
     await page.waitForTimeout(500);
 

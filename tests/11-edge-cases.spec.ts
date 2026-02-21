@@ -4,6 +4,7 @@ import {
   waitForIntegration,
   cleanReviewData,
   selectText,
+  selectTextAcrossElements,
   createAnnotation,
 } from '../helpers/actions';
 import {
@@ -47,8 +48,8 @@ test.describe('Edge cases', () => {
     await expectHighlightCount(page, 1);
 
     // Try to select text that overlaps with the existing highlight
-    // "brown fox jumps over" overlaps with "quick brown fox"
-    await selectText(page, 'brown fox jumps over');
+    // "brown fox jumps over" spans across the mark boundary
+    await selectTextAcrossElements(page, 'brown fox', 'jumps over');
 
     // The system should handle this gracefully
     // Either allow the overlapping annotation or prevent it
@@ -102,7 +103,7 @@ test.describe('Edge cases', () => {
     const noteValue = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const textarea = host.shadowRoot.querySelector('.air-popup textarea') as HTMLTextAreaElement;
+      const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return textarea?.value ?? null;
     });
 

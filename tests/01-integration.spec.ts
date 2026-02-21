@@ -33,7 +33,7 @@ test.describe('Integration basics', () => {
     const fabExists = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return false;
-      return host.shadowRoot.querySelector('.air-fab') !== null;
+      return host.shadowRoot.querySelector('[data-air-el="fab"]') !== null;
     });
     expect(fabExists).toBe(true);
   });

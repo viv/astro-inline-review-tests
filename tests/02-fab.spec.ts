@@ -18,7 +18,7 @@ test.describe('Floating Action Button (FAB)', () => {
     const fabPosition = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab') as HTMLElement;
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       if (!fab) return null;
       const style = window.getComputedStyle(fab);
       return {
@@ -54,32 +54,20 @@ test.describe('Floating Action Button (FAB)', () => {
   });
 
   test('FAB icon changes when panel is open', async ({ page }) => {
-    // FAB should show pencil icon by default, X when panel is open
-    const iconBefore = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab');
-      return fab?.textContent?.trim() ?? null;
-    });
+    // FAB should indicate closed state by default, open state when clicked
+    const fab = shadowLocator(page, SELECTORS.fab);
+    await expect(fab).toHaveAttribute('data-air-state', 'closed');
 
     await clickFab(page);
 
-    const iconAfter = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab');
-      return fab?.textContent?.trim() ?? null;
-    });
-
-    // Icons should be different when toggled
-    expect(iconBefore).not.toBe(iconAfter);
+    await expect(fab).toHaveAttribute('data-air-state', 'open');
   });
 
   test('FAB maintains fixed position when scrolling', async ({ page }) => {
     const fabPositionBefore = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab') as HTMLElement;
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       return fab?.getBoundingClientRect().top ?? null;
     });
 
@@ -90,7 +78,7 @@ test.describe('Floating Action Button (FAB)', () => {
     const fabPositionAfter = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab') as HTMLElement;
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       return fab?.getBoundingClientRect().top ?? null;
     });
 
@@ -102,7 +90,7 @@ test.describe('Floating Action Button (FAB)', () => {
     const ariaLabel = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab');
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]');
       return fab?.getAttribute('aria-label') ?? null;
     });
 
@@ -114,7 +102,7 @@ test.describe('Floating Action Button (FAB)', () => {
     const title = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab');
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]');
       return fab?.getAttribute('title') ?? null;
     });
 
@@ -125,7 +113,7 @@ test.describe('Floating Action Button (FAB)', () => {
     const zIndex = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const fab = host.shadowRoot.querySelector('.air-fab') as HTMLElement;
+      const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       if (!fab) return null;
       return parseInt(window.getComputedStyle(fab).zIndex, 10);
     });

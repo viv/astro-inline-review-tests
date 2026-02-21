@@ -39,7 +39,7 @@ test.describe('Text selection and annotation popup', () => {
 
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const popup = host.shadowRoot.querySelector('.air-popup') as HTMLElement;
+      const popup = host.shadowRoot.querySelector('[data-air-el="popup"]') as HTMLElement;
       if (!popup) return null;
       const popupRect = popup.getBoundingClientRect();
 
@@ -171,7 +171,7 @@ test.describe('Text selection and annotation popup', () => {
     const popupText = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const popup = host.shadowRoot.querySelector('.air-popup');
+      const popup = host.shadowRoot.querySelector('[data-air-el="popup"]');
       return popup?.textContent ?? null;
     });
 
@@ -188,7 +188,7 @@ test.describe('Text selection and annotation popup', () => {
     const popupContent = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return null;
-      const popup = host.shadowRoot.querySelector('.air-popup');
+      const popup = host.shadowRoot.querySelector('[data-air-el="popup"]');
       return popup?.textContent ?? null;
     });
 
@@ -204,7 +204,7 @@ test.describe('Text selection and annotation popup', () => {
     const isFocused = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return false;
-      const textarea = host.shadowRoot.querySelector('.air-popup textarea');
+      const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]');
       return host.shadowRoot.activeElement === textarea;
     });
 

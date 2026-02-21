@@ -36,21 +36,75 @@ export async function cleanReviewData(page: Page): Promise<void> {
  */
 export async function selectText(page: Page, text: string): Promise<void> {
   await page.evaluate((targetText) => {
+    // Normalise whitespace for matching (DOM textContent preserves source newlines/indentation)
+    const normalise = (s: string) => s.replace(/\s+/g, ' ').trim();
+    const normTarget = normalise(targetText);
+
     // Walk text nodes in document body to find the target
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
     let node: Text | null;
 
     while ((node = walker.nextNode() as Text | null)) {
-      const index = node.textContent?.indexOf(targetText) ?? -1;
-      if (index === -1) continue;
+      const rawContent = node.textContent ?? '';
 
       // Skip nodes inside the shadow DOM host
       const host = document.getElementById('astro-inline-review-host');
       if (host?.contains(node)) continue;
 
+      // Try exact match first, then normalised match
+      let index = rawContent.indexOf(targetText);
+      let endIndex = index + targetText.length;
+
+      if (index === -1) {
+        // Build a mapping from normalised positions back to raw positions
+        const normContent = normalise(rawContent);
+        const normIdx = normContent.indexOf(normTarget);
+        if (normIdx === -1) continue;
+
+        // Map normalised index back to raw content positions
+        let rawPos = 0;
+        let normPos = 0;
+        // Skip leading whitespace
+        while (rawPos < rawContent.length && /\s/.test(rawContent[rawPos])) rawPos++;
+
+        let startRaw = -1;
+        let endRaw = -1;
+
+        for (; rawPos <= rawContent.length && normPos <= normContent.length; rawPos++) {
+          if (normPos === normIdx && startRaw === -1) startRaw = rawPos;
+          if (normPos === normIdx + normTarget.length && endRaw === -1) {
+            endRaw = rawPos;
+            break;
+          }
+          if (rawPos < rawContent.length) {
+            if (/\s/.test(rawContent[rawPos])) {
+              // Skip consecutive whitespace in raw, but only advance normPos by 1
+              while (rawPos + 1 < rawContent.length && /\s/.test(rawContent[rawPos + 1])) rawPos++;
+              normPos++;
+            } else {
+              normPos++;
+            }
+          }
+        }
+
+        if (startRaw === -1 || endRaw === -1) continue;
+        index = startRaw;
+        endIndex = endRaw;
+      }
+
+      // Scroll the target element into view if it's offscreen
+      const parent = node.parentElement;
+      if (parent) {
+        const rect = parent.getBoundingClientRect();
+        const isOffscreen = rect.bottom < 0 || rect.top > window.innerHeight;
+        if (isOffscreen) {
+          parent.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      }
+
       const range = document.createRange();
       range.setStart(node, index);
-      range.setEnd(node, index + targetText.length);
+      range.setEnd(node, endIndex);
 
       const selection = window.getSelection();
       selection?.removeAllRanges();
@@ -60,6 +114,10 @@ export async function selectText(page: Page, text: string): Promise<void> {
 
     throw new Error(`Text not found in page: "${targetText}"`);
   }, text);
+
+  // Wait for scroll events to settle (scrollIntoView fires async scroll events
+  // that would hide the popup if they arrive after the popup is shown)
+  await page.waitForTimeout(100);
 
   // Trigger mouseup to simulate selection completion (the integration listens for this)
   await page.dispatchEvent('body', 'mouseup');
@@ -107,6 +165,16 @@ export async function selectTextAcrossElements(
         throw new Error(`Could not find text range: "${start}" to "${end}"`);
       }
 
+      // Scroll the start element into view if offscreen
+      const parent = startNode.parentElement;
+      if (parent) {
+        const rect = parent.getBoundingClientRect();
+        const isOffscreen = rect.bottom < 0 || rect.top > window.innerHeight;
+        if (isOffscreen) {
+          parent.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }
+      }
+
       const range = document.createRange();
       range.setStart(startNode, startOffset);
       range.setEnd(endNode, endOffset);
@@ -117,6 +185,9 @@ export async function selectTextAcrossElements(
     },
     { start: startText, end: endText },
   );
+
+  // Wait for scroll events to settle (same as selectText)
+  await page.waitForTimeout(100);
 
   await page.dispatchEvent('body', 'mouseup');
 }
@@ -157,6 +228,8 @@ export async function closePanel(page: Page): Promise<void> {
 
 /**
  * Create an annotation: select text, wait for popup, type note, save.
+ * Waits for the full save round-trip (API POST + highlight application)
+ * before returning, so the next test step sees the highlight in the DOM.
  */
 export async function createAnnotation(
   page: Page,
@@ -173,12 +246,25 @@ export async function createAnnotation(
   const textarea = shadowLocator(page, SELECTORS.popupTextarea);
   await textarea.fill(note);
 
-  // Click save
+  // Click save and wait for the API POST to complete — the popup hides
+  // before the API call finishes, so waiting for popup hidden alone is
+  // not enough to guarantee the highlight has been applied.
   const saveBtn = shadowLocator(page, SELECTORS.popupSave);
-  await saveBtn.click();
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'POST' &&
+        resp.ok,
+    ),
+    saveBtn.click(),
+  ]);
 
   // Wait for popup to dismiss
   await popup.waitFor({ state: 'hidden' });
+
+  // Allow one tick for applyHighlight (synchronous, runs after API response)
+  await page.waitForTimeout(50);
 }
 
 /**
@@ -191,13 +277,23 @@ export async function createAnnotationWithoutNote(page: Page, text: string): Pro
   await popup.waitFor({ state: 'visible' });
 
   const saveBtn = shadowLocator(page, SELECTORS.popupSave);
-  await saveBtn.click();
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'POST' &&
+        resp.ok,
+    ),
+    saveBtn.click(),
+  ]);
 
   await popup.waitFor({ state: 'hidden' });
+  await page.waitForTimeout(50);
 }
 
 /**
  * Switch to a specific tab in the review panel.
+ * Waits for the tab's content to load (the All Pages tab fetches from the server).
  */
 export async function switchPanelTab(page: Page, tab: 'this-page' | 'all-pages'): Promise<void> {
   const tabLocator = shadowLocator(
@@ -205,6 +301,18 @@ export async function switchPanelTab(page: Page, tab: 'this-page' | 'all-pages')
     tab === 'this-page' ? SELECTORS.tabThisPage : SELECTORS.tabAllPages,
   );
   await tabLocator.click();
+
+  // The All Pages tab fetches data from the server asynchronously.
+  // Wait for content to render — either annotation items, page note items,
+  // or an empty state message.
+  await page.waitForFunction(() => {
+    const host = document.getElementById('astro-inline-review-host');
+    if (!host?.shadowRoot) return false;
+    const content = host.shadowRoot.querySelector('.air-panel__content');
+    if (!content) return false;
+    // Content is loaded when it has child elements (annotation items, page note items, or empty state)
+    return content.children.length > 0;
+  }, { timeout: 5000 });
 }
 
 /**
@@ -219,8 +327,12 @@ export async function addPageNote(page: Page, noteText: string): Promise<void> {
   const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
   await textarea.fill(noteText);
 
-  // Save by pressing Enter or clicking save (implementation may vary)
-  await textarea.press('Enter');
+  // Click the save button
+  const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
+  await saveBtn.click();
+
+  // Wait for the note to be persisted and panel to refresh
+  await page.waitForTimeout(300);
 }
 
 /**
@@ -287,7 +399,11 @@ export function writeReviewJson(content: string): void {
  * Wait for the integration to be ready (shadow host exists).
  */
 export async function waitForIntegration(page: Page): Promise<void> {
-  await page.waitForSelector(`#astro-inline-review-host`, { timeout: 10_000 });
+  // The host div is zero-dimensional (all UI is position:fixed inside shadow root),
+  // so we wait for it to be attached to the DOM rather than visible.
+  await page.waitForSelector(`#astro-inline-review-host`, { state: 'attached', timeout: 10_000 });
+  // Also wait for the FAB to be visible — confirms the client script has fully initialised.
+  await page.locator('#astro-inline-review-host').locator('[data-air-el="fab"]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 /**
