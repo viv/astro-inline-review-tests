@@ -158,6 +158,58 @@ test.describe('Page notes', () => {
     await expectPageNoteCount(page, 0);
   });
 
+  test('cancel discards page note edit', async ({ page }) => {
+    // Add a page note with known text
+    await openPanel(page);
+    await addPageNote(page, 'Original note text');
+
+    // Verify the note was created
+    await expectPageNoteCount(page, 1);
+
+    // Click edit on the note
+    const editBtn = shadowLocator(page, SELECTORS.pageNoteEdit).first();
+    await editBtn.click();
+
+    // Clear and type new text
+    const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
+    await textarea.clear();
+    await textarea.fill('Changed note text');
+
+    // Click cancel instead of save
+    const cancelBtn = shadowLocator(page, SELECTORS.pageNoteCancel);
+    await cancelBtn.click();
+
+    // Wait for panel to refresh
+    await page.waitForTimeout(300);
+
+    // Verify the original text is preserved — the edit was discarded
+    const noteItem = shadowLocator(page, SELECTORS.pageNoteItem).first();
+    await expect(noteItem).toContainText('Original note text');
+    await expect(noteItem).not.toContainText('Changed note text');
+  });
+
+  test('+ Note button toggles form visibility', async ({ page }) => {
+    await openPanel(page);
+
+    const addBtn = shadowLocator(page, SELECTORS.pageNoteAdd);
+    const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
+
+    // Initially, the textarea should not be visible
+    await expect(textarea).not.toBeVisible();
+
+    // Click + Note — textarea should appear
+    await addBtn.click();
+    await expect(textarea).toBeVisible();
+
+    // Click + Note again — textarea should disappear (toggle off)
+    await addBtn.click();
+    await expect(textarea).not.toBeVisible();
+
+    // Click + Note a third time — textarea should appear again (toggle on)
+    await addBtn.click();
+    await expect(textarea).toBeVisible();
+  });
+
   test('page note shows in All Pages view', async ({ page }) => {
     await openPanel(page);
     await addPageNote(page, 'Home note in all pages');

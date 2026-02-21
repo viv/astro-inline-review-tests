@@ -4,6 +4,7 @@ import {
   waitForIntegration,
   cleanReviewData,
   createAnnotation,
+  openPanel,
   readReviewJson,
   writeReviewJson,
 } from '../helpers/actions';
@@ -11,6 +12,7 @@ import {
   expectHighlightExists,
   expectHighlightCount,
   expectBadgeCount,
+  expectAnnotationItemCount,
 } from '../helpers/assertions';
 
 test.describe('Persistence', () => {
@@ -185,6 +187,116 @@ test.describe('Persistence', () => {
     });
 
     expect(value).toBe('After edit');
+  });
+
+  test('context matching restores highlight when XPath breaks (Tier 2)', async ({ page }) => {
+    // Create an annotation — the component stores XPath + context fields
+    await createAnnotation(page, 'quick brown fox', 'Context match test');
+    await expectHighlightExists(page, 'quick brown fox');
+
+    // Wait for persistence to disk
+    await page.waitForTimeout(500);
+
+    // Read the stored JSON and break the XPath so Tier 1 (XPath) fails,
+    // forcing Tier 2 (context matching via contextBefore/contextAfter)
+    const jsonData = readReviewJson();
+    expect(jsonData).not.toBeNull();
+
+    const annotations = (jsonData as Record<string, unknown>).annotations as Array<Record<string, unknown>>;
+    expect(annotations.length).toBeGreaterThanOrEqual(1);
+
+    // Corrupt the XPath inside annotation.range to a non-existent path —
+    // text and context fields within range remain intact for Tier 2 fallback
+    for (const annotation of annotations) {
+      const range = annotation.range as Record<string, unknown> | undefined;
+      if (range) {
+        range.startXPath = '/html[1]/body[1]/div[99]/text()[1]';
+        range.endXPath = '/html[1]/body[1]/div[99]/text()[1]';
+      }
+    }
+
+    writeReviewJson(JSON.stringify(jsonData, null, 2));
+
+    // Clear localStorage cache so the component fetches from the (modified) JSON file
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+
+    // Reload — restoreHighlights should fail Tier 1, succeed Tier 2
+    await page.reload();
+    await waitForIntegration(page);
+
+    // The highlight should still exist because context matching found the text
+    await expectHighlightExists(page, 'quick brown fox');
+  });
+
+  test('orphaned annotation visible in panel but not in DOM (Tier 3)', async ({ page }) => {
+    // Create an annotation that we will fully orphan
+    await createAnnotation(page, 'quick brown fox', 'Orphan test');
+    await expectHighlightExists(page, 'quick brown fox');
+
+    // Wait for persistence to disk
+    await page.waitForTimeout(500);
+
+    // Read the stored JSON and break everything: XPath, selectedText, and context
+    const jsonData = readReviewJson();
+    expect(jsonData).not.toBeNull();
+
+    const annotations = (jsonData as Record<string, unknown>).annotations as Array<Record<string, unknown>>;
+    expect(annotations.length).toBeGreaterThanOrEqual(1);
+
+    for (const annotation of annotations) {
+      const range = annotation.range as Record<string, unknown> | undefined;
+      if (range) {
+        // Break Tier 1 (XPath)
+        range.startXPath = '/html[1]/body[1]/div[99]/text()[1]';
+        range.endXPath = '/html[1]/body[1]/div[99]/text()[1]';
+        // Break Tier 2 (context matching) — change text and context to garbage
+        range.selectedText = 'xyzzy nonexistent text';
+        range.contextBefore = 'aaaa garbage context before aaaa';
+        range.contextAfter = 'zzzz garbage context after zzzz';
+      }
+      // Also break top-level selectedText so panel shows orphaned text
+      annotation.selectedText = 'xyzzy nonexistent text';
+    }
+
+    writeReviewJson(JSON.stringify(jsonData, null, 2));
+
+    // Clear localStorage so the component fetches from the modified JSON
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+
+    // Reload — both Tier 1 and Tier 2 fail, annotation becomes orphaned (Tier 3)
+    await page.reload();
+    await waitForIntegration(page);
+
+    // No highlights should exist in the DOM (orphaned = no DOM highlight)
+    await expectHighlightCount(page, 0);
+
+    // But the annotation should still appear in the panel (rendered from server data)
+    await openPanel(page);
+    await expectAnnotationItemCount(page, 1);
+
+    // The panel item should show the orphaned annotation's text
+    const annotationItem = shadowLocator(page, SELECTORS.annotationItem).first();
+    await expect(annotationItem).toBeVisible();
+  });
+
+  test('invalid JSON schema recovery — wrong version resets to empty store', async ({ page }) => {
+    // Create an annotation first so there is data to lose
+    await createAnnotation(page, 'quick brown fox', 'Schema test note');
+    await page.waitForTimeout(500);
+
+    // Write valid JSON but with an invalid schema (wrong version + wrong shape)
+    writeReviewJson(JSON.stringify({ version: 2, data: 'wrong shape' }));
+
+    // Also clear localStorage so the client can't fall back to cache
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+
+    // Reload — server should reject the invalid schema and return an empty store
+    await page.reload();
+    await waitForIntegration(page);
+
+    // No highlights should be present (data was discarded)
+    await expectHighlightCount(page, 0);
+    await expectBadgeCount(page, 0);
   });
 
   test('annotations survive dev server restart', async ({ page }) => {

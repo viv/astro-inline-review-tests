@@ -4,6 +4,7 @@ import {
   waitForIntegration,
   cleanReviewData,
   createAnnotation,
+  createAnnotationWithoutNote,
   openPanel,
   addPageNote,
   exportShortcut,
@@ -135,6 +136,36 @@ test.describe('Export', () => {
     // Both pages should appear
     expect(exportContent).toContain('quick brown fox');
     expect(exportContent).toContain('wallaby bounces');
+  });
+
+  test('annotation with empty note produces no blockquote in export', async ({ page }) => {
+    // Create an annotation WITHOUT a note (empty note)
+    await createAnnotationWithoutNote(page, 'quick brown fox');
+    await page.waitForTimeout(500);
+
+    // Fetch the export via API
+    const exportContent = await page.evaluate(async () => {
+      const response = await fetch('/__inline-review/api/export');
+      return response.text();
+    });
+
+    // The selected text should appear in the export as bold
+    expect(exportContent).toContain('**"quick brown fox"**');
+
+    // There should be NO blockquote line for this annotation's note.
+    // Split the export into lines and check that no `>` line follows the annotation.
+    const lines = exportContent.split('\n');
+    const annotationLineIdx = lines.findIndex((l: string) =>
+      l.includes('**"quick brown fox"**'),
+    );
+    expect(annotationLineIdx).toBeGreaterThanOrEqual(0);
+
+    // The next non-empty line after the annotation should NOT be a blockquote
+    const nextLines = lines.slice(annotationLineIdx + 1);
+    const nextContentLine = nextLines.find((l: string) => l.trim().length > 0);
+    if (nextContentLine) {
+      expect(nextContentLine.trimStart().startsWith('>')).toBe(false);
+    }
   });
 
   test('empty export shows appropriate message', async ({ page }) => {

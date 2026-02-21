@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { shadowLocator, SELECTORS } from '../helpers/selectors';
-import { waitForIntegration, clickFab, cleanReviewData, createAnnotation } from '../helpers/actions';
+import { waitForIntegration, clickFab, cleanReviewData, createAnnotation, openPanel, closePanel, addPageNote } from '../helpers/actions';
 import { expectFabVisible, expectBadgeCount, expectPanelOpen, expectPanelClosed } from '../helpers/assertions';
 
 test.describe('Floating Action Button (FAB)', () => {
@@ -107,6 +107,23 @@ test.describe('Floating Action Button (FAB)', () => {
     });
 
     expect(title).toBeTruthy();
+  });
+
+  test('FAB badge counts annotations only, not page notes', async ({ page }) => {
+    // Create one annotation — badge should show 1
+    await createAnnotation(page, 'quick brown fox', 'Badge count test');
+    await expectBadgeCount(page, 1);
+
+    // Add a page note — badge should still show 1 (not 2)
+    await openPanel(page);
+    await addPageNote(page, 'A page note');
+    await closePanel(page);
+
+    await expectBadgeCount(page, 1);
+
+    // Create a second annotation — badge should show 2
+    await createAnnotation(page, 'Software engineering', 'Second annotation');
+    await expectBadgeCount(page, 2);
   });
 
   test('FAB z-index is above normal site content', async ({ page }) => {

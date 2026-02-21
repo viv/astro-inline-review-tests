@@ -133,6 +133,32 @@ test.describe('Edge cases', () => {
     expect(hostCountAfter).toBe(1);
   });
 
+  test('DELETE returns 404 for non-existent annotation ID', async ({ page }) => {
+    // Send a DELETE for a non-existent annotation
+    const annotationResult = await page.evaluate(async () => {
+      const response = await fetch(
+        '/__inline-review/api/annotations/nonexistent-id-12345',
+        { method: 'DELETE' },
+      );
+      return { status: response.status, body: await response.json() };
+    });
+
+    expect(annotationResult.status).toBe(404);
+    expect(annotationResult.body).toHaveProperty('error');
+
+    // Send a DELETE for a non-existent page note
+    const pageNoteResult = await page.evaluate(async () => {
+      const response = await fetch(
+        '/__inline-review/api/page-notes/nonexistent-id-12345',
+        { method: 'DELETE' },
+      );
+      return { status: response.status, body: await response.json() };
+    });
+
+    expect(pageNoteResult.status).toBe(404);
+    expect(pageNoteResult.body).toHaveProperty('error');
+  });
+
   test('annotation on dynamically loaded content', async ({ page }) => {
     // Dynamically add content to the page
     await page.evaluate(() => {

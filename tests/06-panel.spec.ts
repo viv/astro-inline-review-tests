@@ -7,6 +7,7 @@ import {
   clickFab,
   openPanel,
   closePanel,
+  addPageNote,
   switchPanelTab,
 } from '../helpers/actions';
 import {
@@ -14,6 +15,7 @@ import {
   expectPanelClosed,
   expectAnnotationItemCount,
   expectHighlightExists,
+  expectHighlightCount,
 } from '../helpers/assertions';
 
 test.describe('Review panel', () => {
@@ -307,6 +309,55 @@ test.describe('Review panel', () => {
       panelContent?.toLowerCase().includes('delete all');
 
     expect(hasConfirmation).toBe(true);
+  });
+
+  test('Clear All confirmation auto-resets after 3 seconds', async ({ page }) => {
+    // Create an annotation so Clear All has something to act on
+    await createAnnotation(page, 'quick brown fox', 'Clear all reset test');
+    await expectHighlightCount(page, 1);
+
+    // Open the panel to access Clear All
+    await openPanel(page);
+
+    const clearAllBtn = shadowLocator(page, SELECTORS.clearAllButton);
+    await expect(clearAllBtn).toBeVisible();
+
+    // Click once — should enter confirmation state
+    await clearAllBtn.click();
+
+    // Verify the button shows confirmation state
+    await expect(clearAllBtn).toHaveAttribute('data-air-state', 'confirming');
+
+    // Wait for the auto-reset timeout (3s + buffer)
+    await page.waitForTimeout(3500);
+
+    // Verify the button has reverted to its default state
+    await expect(clearAllBtn).not.toHaveAttribute('data-air-state', 'confirming');
+
+    // The annotation should still exist — auto-reset should not delete anything
+    await expectHighlightCount(page, 1);
+    await expectAnnotationItemCount(page, 1);
+  });
+
+  test('tab count includes both annotations and page notes', async ({ page }) => {
+    // Create an annotation
+    await createAnnotation(page, 'quick brown fox', 'Tab count annotation');
+
+    // Open panel and add a page note
+    await addPageNote(page, 'Tab count page note');
+
+    // Read the "This Page" tab text — should reflect 2 items (1 annotation + 1 page note)
+    const tabText = await shadowLocator(page, SELECTORS.tabThisPage).textContent();
+    expect(tabText).toContain('2');
+
+    // Add another annotation
+    await closePanel(page);
+    await createAnnotation(page, 'Software engineering', 'Second annotation');
+
+    // Re-open panel and check tab count updates to 3
+    await openPanel(page);
+    const updatedTabText = await shadowLocator(page, SELECTORS.tabThisPage).textContent();
+    expect(updatedTabText).toContain('3');
   });
 
   test('Clear All removes all annotations and page notes', async ({ page }) => {
