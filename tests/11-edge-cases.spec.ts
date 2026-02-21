@@ -16,9 +16,9 @@ import {
 
 test.describe('Edge cases', () => {
   test.beforeEach(async ({ page }) => {
+    cleanReviewData();
     await page.goto('/');
-    await cleanReviewData(page);
-    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
   });
 

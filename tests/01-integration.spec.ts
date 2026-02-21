@@ -5,13 +5,13 @@ import { expectHostExists, createConsoleErrorCollector } from '../helpers/assert
 
 test.describe('Integration basics', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await cleanReviewData(page);
+    cleanReviewData();
   });
 
   test('shadow DOM host element exists on the page', async ({ page }) => {
     // The integration should create a <div id="astro-inline-review-host"> with an open shadow root
     await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
 
     await expectHostExists(page);
@@ -27,6 +27,7 @@ test.describe('Integration basics', () => {
   test('client script is injected on the page', async ({ page }) => {
     // The integration uses injectScript('page', ...) to add client-side JS
     await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
 
     // Verify the FAB exists inside shadow DOM as proof the script ran
@@ -42,6 +43,7 @@ test.describe('Integration basics', () => {
     const errors = createConsoleErrorCollector(page);
 
     await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
 
     // Allow a short delay for any async errors to surface
@@ -53,6 +55,7 @@ test.describe('Integration basics', () => {
   test('integration does not modify existing page content', async ({ page }) => {
     // Capture the page content structure before the integration injects
     await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
 
     // Verify known content paragraphs are intact

@@ -5,6 +5,7 @@ import {
   cleanReviewData,
   createAnnotation,
   openPanel,
+  addPageNote,
   switchPanelTab,
 } from '../helpers/actions';
 import {
@@ -16,9 +17,9 @@ import {
 
 test.describe('Multi-page behaviour', () => {
   test.beforeEach(async ({ page }) => {
+    cleanReviewData();
     await page.goto('/');
-    await cleanReviewData(page);
-    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
   });
 
@@ -109,14 +110,8 @@ test.describe('Multi-page behaviour', () => {
   });
 
   test('page notes are scoped correctly across pages', async ({ page }) => {
-    await openPanel(page);
-
-    // Add page note on home
-    const addBtn = shadowLocator(page, SELECTORS.pageNoteAdd);
-    await addBtn.click();
-    const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
-    await textarea.fill('Home page note');
-    await textarea.press('Enter');
+    // Add page note on home (using helper to ensure save completes via API)
+    await addPageNote(page, 'Home page note');
 
     // Navigate to second page
     await page.goto('/second');

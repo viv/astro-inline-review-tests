@@ -20,9 +20,9 @@ import {
 
 test.describe('Review panel', () => {
   test.beforeEach(async ({ page }) => {
+    cleanReviewData();
     await page.goto('/');
-    await cleanReviewData(page);
-    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
   });
 
@@ -350,9 +350,9 @@ test.describe('Review panel', () => {
     // Open panel and add a page note
     await addPageNote(page, 'Tab count page note');
 
-    // Read the "This Page" tab text — should reflect 2 items (1 annotation + 1 page note)
-    const tabText = await shadowLocator(page, SELECTORS.tabThisPage).textContent();
-    expect(tabText).toContain('2');
+    // Read the "This Page" tab text — should reflect 2 items (1 annotation + 1 page note).
+    // Use toContainText for auto-retry — the tab count updates asynchronously.
+    await expect(shadowLocator(page, SELECTORS.tabThisPage)).toContainText('2');
 
     // Add another annotation
     await closePanel(page);
@@ -360,8 +360,7 @@ test.describe('Review panel', () => {
 
     // Re-open panel and check tab count updates to 3
     await openPanel(page);
-    const updatedTabText = await shadowLocator(page, SELECTORS.tabThisPage).textContent();
-    expect(updatedTabText).toContain('3');
+    await expect(shadowLocator(page, SELECTORS.tabThisPage)).toContainText('3');
   });
 
   test('Clear All removes all annotations and page notes', async ({ page }) => {

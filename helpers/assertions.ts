@@ -46,18 +46,25 @@ export async function expectHighlightExists(page: Page, text: string): Promise<v
 
 /**
  * Assert that no highlight mark exists for the given text.
+ * Uses expect.poll for auto-retry — the highlight may still be in the DOM
+ * briefly after deletion, mirroring expectHighlightExists's pattern.
  */
 export async function expectHighlightNotExists(page: Page, text: string): Promise<void> {
-  const highlights = getHighlights(page);
-  const count = await highlights.count();
+  await expect.poll(async () => {
+    const highlights = getHighlights(page);
+    const allHighlights = await highlights.all();
 
-  for (let i = 0; i < count; i++) {
-    const content = await highlights.nth(i).textContent();
-    expect(
-      content?.includes(text) ?? false,
-      `Expected no highlight containing "${text}" but found one`,
-    ).toBe(false);
-  }
+    for (const highlight of allHighlights) {
+      const content = await highlight.textContent();
+      if (content?.includes(text)) {
+        return true;
+      }
+    }
+    return false;
+  }, {
+    message: `Expected no highlight containing "${text}" but found one`,
+    timeout: 5000,
+  }).toBe(false);
 }
 
 /**

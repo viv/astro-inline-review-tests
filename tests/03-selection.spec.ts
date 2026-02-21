@@ -15,9 +15,9 @@ import {
 
 test.describe('Text selection and annotation popup', () => {
   test.beforeEach(async ({ page }) => {
+    cleanReviewData();
     await page.goto('/');
-    await cleanReviewData(page);
-    await page.goto('/');
+    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
     await waitForIntegration(page);
   });
 
@@ -115,9 +115,10 @@ test.describe('Text selection and annotation popup', () => {
     });
     await page.dispatchEvent('body', 'mouseup');
 
-    // Brief wait to allow any unexpected popup to appear, then verify it didn't
-    await page.waitForTimeout(200);
-    await expectPopupHidden(page);
+    // Verify popup did not appear — expect().not auto-retries for the full
+    // timeout window, so it catches a popup that appears asynchronously
+    const popup = shadowLocator(page, SELECTORS.popup);
+    await expect(popup).not.toHaveAttribute('data-air-state', 'visible', { timeout: 500 });
   });
 
   test('selection inside shadow DOM is ignored', async ({ page }) => {
@@ -147,9 +148,10 @@ test.describe('Text selection and annotation popup', () => {
     });
     await page.dispatchEvent('body', 'mouseup');
 
-    // Brief wait to allow any unexpected popup to appear, then verify it didn't
-    await page.waitForTimeout(200);
-    await expectPopupHidden(page);
+    // Verify popup did not appear — expect().not auto-retries for the full
+    // timeout window, so it catches a popup that appears asynchronously
+    const popup = shadowLocator(page, SELECTORS.popup);
+    await expect(popup).not.toHaveAttribute('data-air-state', 'visible', { timeout: 500 });
   });
 
   test('popup is dismissed when user scrolls', async ({ page }) => {

@@ -14,20 +14,16 @@ const REVIEW_JSON_PATH = path.join(FIXTURE_DIR, 'inline-review.json');
 
 /**
  * Clean up any persisted review data before a test.
- * Removes the inline-review.json file and clears localStorage.
+ * Removes the inline-review.json file (Node-side only — no page needed).
+ * localStorage is cleared separately after navigation to avoid a double
+ * page load in beforeEach hooks.
  */
-export async function cleanReviewData(page: Page): Promise<void> {
-  // Remove JSON file if it exists
+export function cleanReviewData(): void {
   try {
     fs.unlinkSync(REVIEW_JSON_PATH);
   } catch {
     // File doesn't exist — that's fine
   }
-
-  // Clear localStorage for the review integration
-  await page.evaluate(() => {
-    localStorage.removeItem('astro-inline-review');
-  });
 }
 
 /**
