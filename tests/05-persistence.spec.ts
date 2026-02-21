@@ -40,9 +40,6 @@ test.describe('Persistence', () => {
   test('annotation persists in JSON file on disk', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'File test');
 
-    // Give the server a moment to write to disk
-    await page.waitForTimeout(500);
-
     const jsonData = readReviewJson();
     expect(jsonData).not.toBeNull();
     expect(jsonData).toHaveProperty('annotations');
@@ -80,7 +77,6 @@ test.describe('Persistence', () => {
   test('JSON file corruption results in graceful empty state', async ({ page }) => {
     // Create an annotation first
     await createAnnotation(page, 'quick brown fox', 'Corruption test');
-    await page.waitForTimeout(500);
 
     // Corrupt the JSON file
     writeReviewJson('{ this is not valid JSON!!!');
@@ -96,7 +92,6 @@ test.describe('Persistence', () => {
 
   test('localStorage corruption falls back to API', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Fallback test');
-    await page.waitForTimeout(500);
 
     // Corrupt localStorage but leave JSON file intact
     await page.evaluate(() => {
@@ -116,8 +111,6 @@ test.describe('Persistence', () => {
     await createAnnotation(page, 'Software engineering', 'Note two');
     await createAnnotation(page, 'special characters', 'Note three');
 
-    await page.waitForTimeout(500);
-
     // Reload
     await page.reload();
     await waitForIntegration(page);
@@ -135,6 +128,13 @@ test.describe('Persistence', () => {
     const highlight = getHighlights(page).first();
     await highlight.click();
 
+    const deleteResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'DELETE' &&
+        resp.ok(),
+    );
+
     await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');
       if (!host?.shadowRoot) return;
@@ -144,7 +144,7 @@ test.describe('Persistence', () => {
       if (btn) (btn as HTMLElement).click();
     });
 
-    await page.waitForTimeout(500);
+    await deleteResponsePromise;
 
     // Reload
     await page.reload();
@@ -167,9 +167,14 @@ test.describe('Persistence', () => {
     await textarea.fill('After edit');
 
     const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    const patchResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'PATCH' &&
+        resp.ok(),
+    );
     await saveBtn.click();
-
-    await page.waitForTimeout(500);
+    await patchResponsePromise;
 
     // Reload
     await page.reload();
@@ -193,9 +198,6 @@ test.describe('Persistence', () => {
     // Create an annotation — the component stores XPath + context fields
     await createAnnotation(page, 'quick brown fox', 'Context match test');
     await expectHighlightExists(page, 'quick brown fox');
-
-    // Wait for persistence to disk
-    await page.waitForTimeout(500);
 
     // Read the stored JSON and break the XPath so Tier 1 (XPath) fails,
     // forcing Tier 2 (context matching via contextBefore/contextAfter)
@@ -232,9 +234,6 @@ test.describe('Persistence', () => {
     // Create an annotation that we will fully orphan
     await createAnnotation(page, 'quick brown fox', 'Orphan test');
     await expectHighlightExists(page, 'quick brown fox');
-
-    // Wait for persistence to disk
-    await page.waitForTimeout(500);
 
     // Read the stored JSON and break everything: XPath, selectedText, and context
     const jsonData = readReviewJson();
@@ -282,7 +281,6 @@ test.describe('Persistence', () => {
   test('invalid JSON schema recovery — wrong version resets to empty store', async ({ page }) => {
     // Create an annotation first so there is data to lose
     await createAnnotation(page, 'quick brown fox', 'Schema test note');
-    await page.waitForTimeout(500);
 
     // Write valid JSON but with an invalid schema (wrong version + wrong shape)
     writeReviewJson(JSON.stringify({ version: 2, data: 'wrong shape' }));
@@ -301,7 +299,6 @@ test.describe('Persistence', () => {
 
   test('annotations survive dev server restart', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Server restart test');
-    await page.waitForTimeout(500);
 
     // Verify JSON file exists on disk (this is the source of truth that survives restarts)
     const jsonData = readReviewJson();

@@ -45,6 +45,7 @@ export const SELECTORS = {
   elementHighlight: '[data-air-element-id]',
   inspectorOverlay: '[data-air-el="inspector-overlay"]',
   inspectorLabel: '[data-air-el="inspector-label"]',
+  panelContent: '[data-air-el="panel-content"]',
 } as const;
 
 /**

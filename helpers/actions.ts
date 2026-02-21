@@ -255,7 +255,7 @@ export async function createAnnotation(
       (resp) =>
         resp.url().includes('/__inline-review/api/annotations') &&
         resp.request().method() === 'POST' &&
-        resp.ok,
+        resp.ok(),
     ),
     saveBtn.click(),
   ]);
@@ -282,7 +282,7 @@ export async function createAnnotationWithoutNote(page: Page, text: string): Pro
       (resp) =>
         resp.url().includes('/__inline-review/api/annotations') &&
         resp.request().method() === 'POST' &&
-        resp.ok,
+        resp.ok(),
     ),
     saveBtn.click(),
   ]);
@@ -308,7 +308,7 @@ export async function switchPanelTab(page: Page, tab: 'this-page' | 'all-pages')
   await page.waitForFunction(() => {
     const host = document.getElementById('astro-inline-review-host');
     if (!host?.shadowRoot) return false;
-    const content = host.shadowRoot.querySelector('.air-panel__content');
+    const content = host.shadowRoot.querySelector('[data-air-el="panel-content"]');
     if (!content) return false;
     // Content is loaded when it has child elements (annotation items, page note items, or empty state)
     return content.children.length > 0;
@@ -327,12 +327,21 @@ export async function addPageNote(page: Page, noteText: string): Promise<void> {
   const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
   await textarea.fill(noteText);
 
-  // Click the save button
+  // Click save and wait for the API POST to complete
   const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
-  await saveBtn.click();
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/page-notes') &&
+        resp.request().method() === 'POST' &&
+        resp.ok(),
+    ),
+    saveBtn.click(),
+  ]);
 
-  // Wait for the note to be persisted and panel to refresh
-  await page.waitForTimeout(300);
+  // Wait for the panel to process the response and refresh (form is removed,
+  // page note item appears)
+  await textarea.waitFor({ state: 'detached' });
 }
 
 /**
@@ -474,7 +483,7 @@ export async function createElementAnnotation(
       (resp) =>
         resp.url().includes('/__inline-review/api/annotations') &&
         resp.request().method() === 'POST' &&
-        resp.ok,
+        resp.ok(),
     ),
     saveBtn.click(),
   ]);

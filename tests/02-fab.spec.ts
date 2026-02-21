@@ -72,8 +72,12 @@ test.describe('Floating Action Button (FAB)', () => {
     });
 
     // Scroll the page
-    await page.evaluate(() => window.scrollBy(0, 500));
-    await page.waitForTimeout(100);
+    await page.evaluate(() => window.scrollBy(0, 300));
+    // Wait for scroll to settle
+    await expect.poll(
+      () => page.evaluate(() => window.scrollY > 0),
+      { timeout: 2000 },
+    ).toBe(true);
 
     const fabPositionAfter = await page.evaluate(() => {
       const host = document.getElementById('astro-inline-review-host');

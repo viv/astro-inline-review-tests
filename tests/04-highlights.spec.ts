@@ -85,7 +85,7 @@ test.describe('Highlights', () => {
         (resp) =>
           resp.url().includes('/__inline-review/api/annotations') &&
           resp.request().method() === 'POST' &&
-          resp.ok,
+          resp.ok(),
       ),
       saveBtn.click(),
     ]);

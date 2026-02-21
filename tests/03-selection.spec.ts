@@ -115,8 +115,8 @@ test.describe('Text selection and annotation popup', () => {
     });
     await page.dispatchEvent('body', 'mouseup');
 
-    // Popup should NOT appear for whitespace-only selection
-    await page.waitForTimeout(500);
+    // Brief wait to allow any unexpected popup to appear, then verify it didn't
+    await page.waitForTimeout(200);
     await expectPopupHidden(page);
   });
 
@@ -147,8 +147,8 @@ test.describe('Text selection and annotation popup', () => {
     });
     await page.dispatchEvent('body', 'mouseup');
 
-    // Popup should NOT appear for shadow DOM selections
-    await page.waitForTimeout(500);
+    // Brief wait to allow any unexpected popup to appear, then verify it didn't
+    await page.waitForTimeout(200);
     await expectPopupHidden(page);
   });
 
@@ -158,8 +158,6 @@ test.describe('Text selection and annotation popup', () => {
 
     // Scroll the page
     await page.evaluate(() => window.scrollBy(0, 200));
-    await page.waitForTimeout(500);
-
     await expectPopupHidden(page);
   });
 

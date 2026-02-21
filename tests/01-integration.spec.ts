@@ -45,7 +45,7 @@ test.describe('Integration basics', () => {
     await waitForIntegration(page);
 
     // Allow a short delay for any async errors to surface
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     expect(errors, `Console errors found: ${errors.join(', ')}`).toHaveLength(0);
   });

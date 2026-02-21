@@ -86,8 +86,7 @@ test.describe('Element annotations', () => {
 
       // Inspector overlay should NOT appear
       const overlay = getInspectorOverlay(page);
-      await page.waitForTimeout(200);
-      await expect(overlay).not.toBeAttached();
+      await expect(overlay).not.toBeAttached({ timeout: 500 });
 
       await releaseAlt(page);
     });
@@ -240,11 +239,18 @@ test.describe('Element annotations', () => {
       await textarea.fill('Updated note');
 
       const saveBtn = shadowLocator(page, SELECTORS.popupSave);
-      await saveBtn.click();
+      await Promise.all([
+        page.waitForResponse(
+          (resp) =>
+            resp.url().includes('/__inline-review/api/annotations') &&
+            resp.request().method() === 'PATCH' &&
+            resp.ok(),
+        ),
+        saveBtn.click(),
+      ]);
       await expectPopupHidden(page);
 
       // Verify the updated note is in the JSON store
-      await page.waitForTimeout(200);
       const store = readReviewJson();
       expect(store).not.toBeNull();
       const annotations = (store as any)?.annotations ?? [];
@@ -267,7 +273,7 @@ test.describe('Element annotations', () => {
           (resp) =>
             resp.url().includes('/__inline-review/api/annotations') &&
             resp.request().method() === 'DELETE' &&
-            resp.ok,
+            resp.ok(),
         ),
         deleteBtn.click(),
       ]);
@@ -284,7 +290,11 @@ test.describe('Element annotations', () => {
 
       // Scroll away from the element
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(300);
+      // Wait for scroll to settle
+      await expect.poll(
+        () => page.evaluate(() => window.scrollY > 0),
+        { timeout: 2000 },
+      ).toBe(true);
 
       // Open panel and click the element annotation
       await openPanel(page);
@@ -335,23 +345,25 @@ test.describe('Element annotations', () => {
 
       // Scroll to bottom of page
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(300);
+      // Wait for scroll to settle
+      await expect.poll(
+        () => page.evaluate(() => window.scrollY > 0),
+        { timeout: 2000 },
+      ).toBe(true);
 
       await openPanel(page);
       const elementItem = shadowLocator(page, SELECTORS.elementAnnotationItem);
       await elementItem.click();
 
-      // Wait for scroll animation
-      await page.waitForTimeout(500);
-
-      // The hero image should now be in the viewport
-      const isVisible = await page.evaluate(() => {
-        const el = document.querySelector('#hero-image');
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        return rect.top >= 0 && rect.bottom <= window.innerHeight;
-      });
-      expect(isVisible).toBe(true);
+      // Wait for scroll animation to bring element into viewport
+      await expect.poll(async () => {
+        return page.evaluate(() => {
+          const el = document.querySelector('#hero-image');
+          if (!el) return false;
+          const rect = el.getBoundingClientRect();
+          return rect.top >= 0 && rect.bottom <= window.innerHeight;
+        });
+      }, { timeout: 2000 }).toBe(true);
     });
   });
 
@@ -409,7 +421,6 @@ test.describe('Element annotations', () => {
       await openPanel(page);
       const allPagesTab = shadowLocator(page, SELECTORS.tabAllPages);
       await allPagesTab.click();
-      await page.waitForTimeout(300);
 
       await expectElementAnnotationItemCount(page, 1);
     });
@@ -423,11 +434,16 @@ test.describe('Element annotations', () => {
       await createElementAnnotation(page, '#hero-image', 'Export test note');
 
       await exportShortcut(page);
-      await page.waitForTimeout(500);
 
+      // Wait for clipboard content to be written
+      await expect.poll(
+        () => page.evaluate(() => navigator.clipboard.readText()),
+        { message: 'Clipboard should contain export', timeout: 2000 },
+      ).toContain('Export test note');
+
+      // Verify full export content
       const clipboard = await getClipboardText(page);
       expect(clipboard).toContain('### Element Annotations');
-      expect(clipboard).toContain('Export test note');
     });
 
     test('export includes both text and element annotations', async ({ page, context }) => {
@@ -437,13 +453,18 @@ test.describe('Element annotations', () => {
       await createElementAnnotation(page, '#hero-image', 'Element note');
 
       await exportShortcut(page);
-      await page.waitForTimeout(500);
 
+      // Wait for clipboard content to be written
+      await expect.poll(
+        () => page.evaluate(() => navigator.clipboard.readText()),
+        { message: 'Clipboard should contain export', timeout: 2000 },
+      ).toContain('Element note');
+
+      // Verify full export content
       const clipboard = await getClipboardText(page);
       expect(clipboard).toContain('### Text Annotations');
       expect(clipboard).toContain('### Element Annotations');
       expect(clipboard).toContain('Text note');
-      expect(clipboard).toContain('Element note');
     });
   });
 
@@ -459,7 +480,8 @@ test.describe('Element annotations', () => {
         document.body.dispatchEvent(event);
       });
 
-      await page.waitForTimeout(300);
+      // Brief wait to allow any async popup to appear, then verify it didn't
+      await page.waitForTimeout(200);
       await expectPopupHidden(page);
     });
 
@@ -516,10 +538,9 @@ test.describe('Element annotations', () => {
       await clearBtn.click(); // First click — confirmation
       await clearBtn.click(); // Second click — confirm delete
 
-      // Wait for deletions to process
-      await page.waitForTimeout(500);
-
-      await expectBadgeCount(page, 0);
+      // Wait for all DELETE operations to complete (badge hides when count reaches 0)
+      const badge = shadowLocator(page, SELECTORS.fabBadge);
+      await expect(badge).not.toBeVisible({ timeout: 5000 });
       await expectElementHighlightCount(page, 0);
     });
   });

@@ -143,8 +143,6 @@ test.describe('Multi-page behaviour', () => {
     await waitForIntegration(page);
     await createAnnotation(page, 'wallaby bounces', 'Export second');
 
-    await page.waitForTimeout(500);
-
     // Fetch export via API
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');

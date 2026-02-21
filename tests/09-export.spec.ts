@@ -21,7 +21,6 @@ test.describe('Export', () => {
 
   test('export generates valid markdown', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'A test note');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -35,7 +34,6 @@ test.describe('Export', () => {
 
   test('export includes page URL as heading', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'URL heading test');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -48,7 +46,6 @@ test.describe('Export', () => {
 
   test('export includes page title', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Title test');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -63,7 +60,6 @@ test.describe('Export', () => {
     await openPanel(page);
     await addPageNote(page, 'First page note for export');
     await addPageNote(page, 'Second page note for export');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -78,7 +74,6 @@ test.describe('Export', () => {
   test('annotations numbered under Text Annotations heading', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Note one');
     await createAnnotation(page, 'Software engineering', 'Note two');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -93,7 +88,6 @@ test.describe('Export', () => {
 
   test('selected text appears in bold quotes', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Bold test');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -106,7 +100,6 @@ test.describe('Export', () => {
 
   test('note appears as blockquote', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'This is the note');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -123,7 +116,6 @@ test.describe('Export', () => {
     await page.goto('/second');
     await waitForIntegration(page);
     await createAnnotation(page, 'wallaby bounces', 'Second export');
-    await page.waitForTimeout(500);
 
     const exportContent = await page.evaluate(async () => {
       const response = await fetch('/__inline-review/api/export');
@@ -141,7 +133,6 @@ test.describe('Export', () => {
   test('annotation with empty note produces no blockquote in export', async ({ page }) => {
     // Create an annotation WITHOUT a note (empty note)
     await createAnnotationWithoutNote(page, 'quick brown fox');
-    await page.waitForTimeout(500);
 
     // Fetch the export via API
     const exportContent = await page.evaluate(async () => {
@@ -187,22 +178,21 @@ test.describe('Export', () => {
 
   test('export copies to clipboard via keyboard shortcut', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Clipboard test');
-    await page.waitForTimeout(500);
 
     // Grant clipboard permissions
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await exportShortcut(page);
-    await page.waitForTimeout(300);
 
-    // Verify clipboard content
-    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboardContent).toContain('quick brown fox');
+    // Wait for export to complete (server fetch + clipboard write)
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 2000 },
+    ).toContain('quick brown fox');
   });
 
   test('toast notification appears on export', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Toast test');
-    await page.waitForTimeout(500);
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
@@ -214,15 +204,16 @@ test.describe('Export', () => {
 
   test('export via keyboard shortcut', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Shortcut export test');
-    await page.waitForTimeout(500);
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await exportShortcut(page);
 
-    // Should have copied to clipboard
-    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboardContent).toContain('quick brown fox');
+    // Wait for export to complete (server fetch + clipboard write)
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 2000 },
+    ).toContain('quick brown fox');
   });
 
   test('export includes annotations from all pages', async ({ page }) => {
@@ -231,16 +222,18 @@ test.describe('Export', () => {
     await page.goto('/second');
     await waitForIntegration(page);
     await createAnnotation(page, 'wallaby bounces', 'Second export all');
-    await page.waitForTimeout(500);
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
     await exportShortcut(page);
-    // Wait for async export to complete (server fetch + clipboard write)
-    await page.waitForTimeout(500);
+
+    // Wait for export to complete (server fetch + clipboard write)
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 2000 },
+    ).toContain('quick brown fox');
 
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboardContent).toContain('quick brown fox');
     expect(clipboardContent).toContain('Home export all');
     expect(clipboardContent).toContain('wallaby bounces');
     expect(clipboardContent).toContain('Second export all');

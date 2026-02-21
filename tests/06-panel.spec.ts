@@ -32,8 +32,18 @@ test.describe('Review panel', () => {
     const panel = shadowLocator(page, SELECTORS.panel);
     await expect(panel).toBeVisible();
 
-    // Wait for slide-in transition to complete (0.3s CSS transition)
-    await page.waitForTimeout(400);
+    // Wait for slide-in transition to complete (panel animates from offscreen right
+    // to flush with viewport edge — wait until right edge stabilises near viewport width)
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const host = document.getElementById('astro-inline-review-host');
+        if (!host?.shadowRoot) return false;
+        const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
+        if (!panel) return false;
+        const rect = panel.getBoundingClientRect();
+        return Math.abs(rect.right - window.innerWidth) < 5;
+      });
+    }, { timeout: 2000 }).toBe(true);
 
     // Panel should be positioned on the right side of the viewport
     const panelRect = await page.evaluate(() => {
@@ -151,17 +161,15 @@ test.describe('Review panel', () => {
     const annotationItem = shadowLocator(page, SELECTORS.annotationItem).first();
     await annotationItem.click();
 
-    // The page should have scrolled to bring the highlight into view
-    await page.waitForTimeout(500);
-
-    const highlightVisible = await page.evaluate(() => {
-      const mark = document.querySelector('mark[data-air-id]');
-      if (!mark) return false;
-      const rect = mark.getBoundingClientRect();
-      return rect.top >= 0 && rect.top <= window.innerHeight;
-    });
-
-    expect(highlightVisible).toBe(true);
+    // Wait for scroll animation to bring highlight into viewport
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const mark = document.querySelector('mark[data-air-id]');
+        if (!mark) return false;
+        const rect = mark.getBoundingClientRect();
+        return rect.top >= 0 && rect.top <= window.innerHeight;
+      });
+    }, { timeout: 2000 }).toBe(true);
   });
 
   test('highlight pulses on scroll-to from panel', async ({ page }) => {
@@ -328,11 +336,8 @@ test.describe('Review panel', () => {
     // Verify the button shows confirmation state
     await expect(clearAllBtn).toHaveAttribute('data-air-state', 'confirming');
 
-    // Wait for the auto-reset timeout (3s + buffer)
-    await page.waitForTimeout(3500);
-
-    // Verify the button has reverted to its default state
-    await expect(clearAllBtn).not.toHaveAttribute('data-air-state', 'confirming');
+    // Wait for auto-reset timeout (3s internal timer)
+    await expect(clearAllBtn).not.toHaveAttribute('data-air-state', 'confirming', { timeout: 4000 });
 
     // The annotation should still exist — auto-reset should not delete anything
     await expectHighlightCount(page, 1);
@@ -372,9 +377,7 @@ test.describe('Review panel', () => {
     // Two-click confirmation: click the same button again to confirm
     await clearAllBtn.click();
 
-    await page.waitForTimeout(500);
-
-    // All annotations should be gone
+    // Wait for all DELETE operations to complete
     await expectAnnotationItemCount(page, 0);
   });
 });

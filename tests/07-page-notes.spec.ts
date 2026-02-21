@@ -51,8 +51,17 @@ test.describe('Page notes', () => {
 
     // Click save
     const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
+    const patchResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/page-notes') &&
+        resp.request().method() === 'PATCH' &&
+        resp.ok(),
+    );
     await saveBtn.click();
-    await page.waitForTimeout(300);
+    await patchResponsePromise;
+
+    // Wait for edit form to close (textarea replaced by rendered note)
+    await expect(textarea).not.toBeVisible();
 
     // Verify the edit
     const noteText = await page.evaluate(() => {
@@ -72,17 +81,20 @@ test.describe('Page notes', () => {
 
     // Click delete button on the page note
     const deleteBtn = shadowLocator(page, SELECTORS.pageNoteDelete).first();
+    const deleteResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/page-notes') &&
+        resp.request().method() === 'DELETE' &&
+        resp.ok(),
+    );
     await deleteBtn.click();
-
-    await page.waitForTimeout(300);
+    await deleteResponsePromise;
     await expectPageNoteCount(page, 0);
   });
 
   test('page note persists after reload', async ({ page }) => {
     await openPanel(page);
     await addPageNote(page, 'Persistent page note');
-
-    await page.waitForTimeout(500);
 
     // Reload
     await page.reload();
@@ -119,7 +131,6 @@ test.describe('Page notes', () => {
   test('page note appears in export', async ({ page }) => {
     await openPanel(page);
     await addPageNote(page, 'Note for export test');
-    await page.waitForTimeout(500);
 
     // Fetch export via API
     const exportContent = await page.evaluate(async () => {
@@ -152,9 +163,7 @@ test.describe('Page notes', () => {
     const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
     await saveBtn.click();
 
-    await page.waitForTimeout(300);
-
-    // Should not create a page note
+    // Empty note should not be saved — expectPageNoteCount auto-retries
     await expectPageNoteCount(page, 0);
   });
 
@@ -179,8 +188,8 @@ test.describe('Page notes', () => {
     const cancelBtn = shadowLocator(page, SELECTORS.pageNoteCancel);
     await cancelBtn.click();
 
-    // Wait for panel to refresh
-    await page.waitForTimeout(300);
+    // Wait for edit form to close
+    await expect(textarea).not.toBeVisible();
 
     // Verify the original text is preserved — the edit was discarded
     const noteItem = shadowLocator(page, SELECTORS.pageNoteItem).first();

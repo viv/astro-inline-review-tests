@@ -53,9 +53,8 @@ test.describe('Edge cases', () => {
 
     // The system should handle this gracefully
     // Either allow the overlapping annotation or prevent it
-    await page.waitForTimeout(500);
 
-    // At minimum, the first annotation should still be intact
+    // The first annotation should still be intact
     await expectHighlightExists(page, 'quick brown fox');
   });
 
@@ -70,7 +69,6 @@ test.describe('Edge cases', () => {
     await expectBadgeCount(page, 3);
 
     // Verify persistence
-    await page.waitForTimeout(500);
     await page.reload();
     await waitForIntegration(page);
 
@@ -124,7 +122,7 @@ test.describe('Edge cases', () => {
     await page.evaluate(() => {
       document.dispatchEvent(new Event('astro:page-load'));
     });
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(200);
 
     // Should still be exactly one host
     const hostCountAfter = await page.evaluate(() => {

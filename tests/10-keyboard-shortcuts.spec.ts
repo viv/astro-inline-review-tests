@@ -58,7 +58,6 @@ test.describe('Keyboard shortcuts', () => {
 
   test('Cmd/Ctrl+Shift+E triggers export', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Shortcut export');
-    await page.waitForTimeout(500);
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
