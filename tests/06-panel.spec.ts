@@ -186,11 +186,10 @@ test.describe('Review panel', () => {
     const hasPulse = await page.evaluate(() => {
       const mark = document.querySelector('mark[data-air-id]');
       if (!mark) return false;
-      // Check for animation or transitional class
+      // Check for pulse via automation contract attribute or active CSS animation
       const style = window.getComputedStyle(mark);
       return (
         style.animation !== 'none' ||
-        mark.classList.contains('air-pulse') ||
         mark.getAttribute('data-air-pulse') !== null
       );
     });

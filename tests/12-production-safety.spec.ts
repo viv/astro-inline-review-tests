@@ -15,15 +15,20 @@ const DIST_DIR = path.join(FIXTURE_DIR, 'dist');
 test.describe('Production safety', () => {
   // Build the fixture site once before all tests in this describe block
   test.beforeAll(() => {
-    try {
-      execSync('npm run build', {
-        cwd: FIXTURE_DIR,
-        stdio: 'pipe',
-        timeout: 60_000,
-      });
-    } catch (error) {
-      // Build might fail if integration isn't fully implemented yet — that's expected
-      console.warn('Fixture build failed (may be expected during development):', error);
+    execSync('npm run build', {
+      cwd: FIXTURE_DIR,
+      stdio: 'pipe',
+      timeout: 60_000,
+    });
+
+    // Guard against false positives: if the build produced no output,
+    // every test would trivially pass (empty for-of loops).
+    const htmlFiles = findFiles(DIST_DIR, '.html');
+    if (htmlFiles.length === 0) {
+      throw new Error(
+        `Production safety: build produced no HTML files in ${DIST_DIR}. ` +
+          'Cannot verify production output is clean.',
+      );
     }
   });
 
