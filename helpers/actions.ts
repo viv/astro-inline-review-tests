@@ -409,6 +409,35 @@ export function writeReviewJson(content: string): void {
 }
 
 /**
+ * Write a pre-built review store to inline-review.json.
+ * Used to simulate MCP server writes (resolvedAt, replies).
+ */
+export function writeReviewStore(store: {
+  version: 1;
+  annotations: Array<Record<string, unknown>>;
+  pageNotes: Array<Record<string, unknown>>;
+}): void {
+  fs.writeFileSync(REVIEW_JSON_PATH, JSON.stringify(store, null, 2), 'utf-8');
+}
+
+/**
+ * Read the review store and return a parsed, typed object.
+ * Returns null if the file doesn't exist or is unparseable.
+ */
+export function readReviewStore(): {
+  version: number;
+  annotations: Array<Record<string, unknown>>;
+  pageNotes: Array<Record<string, unknown>>;
+} | null {
+  try {
+    const content = fs.readFileSync(REVIEW_JSON_PATH, 'utf-8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Wait for the integration to be ready (shadow host exists).
  */
 export async function waitForIntegration(page: Page): Promise<void> {
