@@ -8,6 +8,7 @@ import {
   openPanel,
   addPageNote,
   exportShortcut,
+  clickExportButton,
 } from '../helpers/actions';
 import { expectToastVisible } from '../helpers/assertions';
 
@@ -247,5 +248,79 @@ test.describe('Export', () => {
     expect(clipboardContent).toContain('Home export all');
     expect(clipboardContent).toContain('wallaby bounces');
     expect(clipboardContent).toContain('Second export all');
+  });
+
+  test('Copy All button is visible in panel header', async ({ page }) => {
+    await openPanel(page);
+
+    const exportBtn = shadowLocator(page, SELECTORS.exportButton);
+    await expect(exportBtn).toBeVisible();
+    await expect(exportBtn).toHaveText('Copy All');
+  });
+
+  test('Copy All button copies annotations to clipboard', async ({ page }) => {
+    await createAnnotation(page, 'quick brown fox', 'Button clipboard test');
+
+    await openPanel(page);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await clickExportButton(page);
+
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 2000 },
+    ).toContain('quick brown fox');
+
+    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboardContent).toContain('# Inline Review');
+    expect(clipboardContent).toContain('Button clipboard test');
+  });
+
+  test('Copy All button shows toast notification', async ({ page }) => {
+    await createAnnotation(page, 'quick brown fox', 'Button toast test');
+
+    await openPanel(page);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await clickExportButton(page);
+
+    await expectToastVisible(page, 'Copied');
+  });
+
+  test('Copy All button exports all pages (not just current)', async ({ page }) => {
+    await createAnnotation(page, 'quick brown fox', 'Home button export');
+
+    await page.goto('/second');
+    await waitForIntegration(page);
+    await createAnnotation(page, 'wallaby bounces', 'Second button export');
+
+    await openPanel(page);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await clickExportButton(page);
+
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 2000 },
+    ).toContain('quick brown fox');
+
+    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboardContent).toContain('Home button export');
+    expect(clipboardContent).toContain('wallaby bounces');
+    expect(clipboardContent).toContain('Second button export');
+  });
+
+  test('Copy All button works with empty store', async ({ page }) => {
+    await openPanel(page);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+    await clickExportButton(page);
+
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain empty export message', timeout: 2000 },
+    ).toContain('No annotations or notes yet.');
+
+    await expectToastVisible(page);
   });
 });

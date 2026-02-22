@@ -61,27 +61,46 @@ test.describe('Keyboard shortcuts', () => {
 
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    await exportShortcut(page);
+    // Fire export shortcut and wait for the server GET to complete —
+    // the shortcut handler fetches the full store from the server
+    // before writing to the clipboard.
+    await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/__inline-review/api/annotations') &&
+          resp.request().method() === 'GET' &&
+          !resp.url().includes('?page=') &&
+          resp.ok(),
+      ),
+      exportShortcut(page),
+    ]);
 
-    // Verify export happened (clipboard should have content)
-    const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboardContent).toContain('quick brown fox');
+    // Poll clipboard — the clipboard write happens after the fetch resolves
+    await expect.poll(
+      () => page.evaluate(() => navigator.clipboard.readText()),
+      { message: 'Clipboard should contain exported content', timeout: 5000 },
+    ).toContain('quick brown fox');
   });
 
   test('Cmd/Ctrl+Shift+N opens page note input', async ({ page }) => {
     await pageNoteShortcut(page);
 
-    // Should open the panel and focus the page note input
+    // Should open the panel and focus the page note input.
+    // The component's addPageNote handler is async (opens panel, awaits
+    // a server fetch to refresh content, then clicks the + Note button).
+    // The panel state attribute is set synchronously, but the textarea
+    // only appears after the async refresh completes — so we must poll.
     await expectPanelOpen(page);
 
-    const textareaVisible = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
-      if (!host?.shadowRoot) return false;
-      const textarea = host.shadowRoot.querySelector('[data-air-el="page-note-textarea"]');
-      return textarea !== null;
-    });
-
-    expect(textareaVisible).toBe(true);
+    await expect.poll(
+      () =>
+        page.evaluate(() => {
+          const host = document.getElementById('astro-inline-review-host');
+          if (!host?.shadowRoot) return false;
+          return host.shadowRoot.querySelector('[data-air-el="page-note-textarea"]') !== null;
+        }),
+      { message: 'Page note textarea should appear after shortcut', timeout: 5000 },
+    ).toBe(true);
   });
 
   test('shortcuts do not fire when typing in an input field', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { shadowLocator, SELECTORS, shadowQueryCount } from '../helpers/selectors';
+import { shadowLocator, SELECTORS, shadowQueryCount, HOST_ID } from '../helpers/selectors';
 import {
   waitForIntegration,
   cleanReviewData,
@@ -437,5 +437,20 @@ test.describe('Review panel', () => {
       // The content area should support scrolling
       expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
     }
+  });
+
+  test('panel header buttons appear in correct order', async ({ page }) => {
+    await openPanel(page);
+
+    const buttonLabels = await page.evaluate((hostId) => {
+      const host = document.getElementById(hostId);
+      if (!host?.shadowRoot) return null;
+      const actions = host.shadowRoot.querySelector('.air-panel__actions');
+      if (!actions) return null;
+      const buttons = Array.from(actions.querySelectorAll('button'));
+      return buttons.map((btn) => btn.textContent?.trim() ?? '');
+    }, HOST_ID);
+
+    expect(buttonLabels).toEqual(['+ Note', 'Copy All', 'Clear All']);
   });
 });

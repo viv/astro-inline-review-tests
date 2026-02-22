@@ -365,6 +365,14 @@ export async function togglePanelShortcut(page: Page): Promise<void> {
 }
 
 /**
+ * Click the Copy All (export) button in the panel header.
+ */
+export async function clickExportButton(page: Page): Promise<void> {
+  const exportBtn = shadowLocator(page, SELECTORS.exportButton);
+  await exportBtn.click();
+}
+
+/**
  * Export with keyboard shortcut (Cmd/Ctrl+Shift+E).
  */
 export async function exportShortcut(page: Page): Promise<void> {

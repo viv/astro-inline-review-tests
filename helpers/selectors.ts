@@ -40,6 +40,7 @@ export const SELECTORS = {
   pageNoteEdit: '[data-air-el="page-note-edit"]',
   pageNoteDelete: '[data-air-el="page-note-delete"]',
   clearAllButton: '[data-air-el="clear-all"]',
+  exportButton: '[data-air-el="export"]',
   toast: '[data-air-el="toast"]',
   highlight: 'mark[data-air-id]',
   elementHighlight: '[data-air-element-id]',
