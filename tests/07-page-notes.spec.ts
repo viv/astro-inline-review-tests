@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { shadowLocator, SELECTORS } from '../helpers/selectors';
+import { shadowLocator, SELECTORS, shadowQueryCount } from '../helpers/selectors';
 import {
   waitForIntegration,
   cleanReviewData,
@@ -239,5 +239,55 @@ test.describe('Page notes', () => {
 
     expect(panelContent).toContain('Home note in all pages');
     expect(panelContent).toContain('Second note in all pages');
+  });
+
+  test('editing a page note to empty text deletes or rejects the edit', async ({
+    page,
+  }) => {
+    await openPanel(page);
+    await addPageNote(page, 'Note that will be emptied');
+    await expectPageNoteCount(page, 1);
+
+    // Click edit on the note
+    const editBtn = shadowLocator(page, SELECTORS.pageNoteEdit).first();
+    await editBtn.click();
+
+    // Clear the textarea completely
+    const textarea = shadowLocator(page, SELECTORS.pageNoteTextarea);
+    await textarea.clear();
+
+    // Click save
+    const saveBtn = shadowLocator(page, SELECTORS.pageNoteSave);
+    await saveBtn.click();
+
+    // Wait for the save to complete or be rejected
+    await page.waitForTimeout(500);
+
+    // Three acceptable outcomes:
+    // 1. Note deleted (count = 0, form closed)
+    // 2. Edit rejected, original text preserved (count = 1, form closed)
+    // 3. Save rejected, edit form stays open (textarea still visible)
+    const isTextareaStillVisible = await textarea.isVisible().catch(() => false);
+    const noteCount = await shadowQueryCount(page, SELECTORS.pageNoteItem);
+
+    if (isTextareaStillVisible) {
+      // Save was rejected — the edit form is still open, which means the
+      // implementation prevents saving empty notes. Cancel to restore state.
+      const cancelBtn = shadowLocator(page, SELECTORS.pageNoteCancel);
+      await cancelBtn.click();
+      await expect(textarea).not.toBeVisible();
+
+      // Original note should be preserved
+      await expectPageNoteCount(page, 1);
+      const noteItem = shadowLocator(page, SELECTORS.pageNoteItem).first();
+      await expect(noteItem).toContainText('Note that will be emptied');
+    } else if (noteCount === 0) {
+      // Editing to empty deleted the note — acceptable behaviour
+      await expectPageNoteCount(page, 0);
+    } else {
+      // Edit was rejected, form closed, original text preserved
+      const noteItem = shadowLocator(page, SELECTORS.pageNoteItem).first();
+      await expect(noteItem).toContainText('Note that will be emptied');
+    }
   });
 });

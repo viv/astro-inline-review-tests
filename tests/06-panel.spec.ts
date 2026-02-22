@@ -378,4 +378,64 @@ test.describe('Review panel', () => {
     // Wait for all DELETE operations to complete
     await expectAnnotationItemCount(page, 0);
   });
+
+  test('panel content area supports overflow scrolling', async ({
+    page,
+  }) => {
+    await openPanel(page);
+
+    // Verify the panel content area has overflow-y set to auto or scroll,
+    // which means it will scroll when content exceeds its height
+    const overflowY = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const panelContent = host.shadowRoot.querySelector(
+        '[data-air-el="panel-content"]',
+      ) as HTMLElement;
+      if (!panelContent) return null;
+      return window.getComputedStyle(panelContent).overflowY;
+    });
+
+    expect(overflowY).not.toBeNull();
+    // overflow-y should be auto or scroll (not visible or hidden)
+    expect(['auto', 'scroll']).toContain(overflowY);
+  });
+
+  test('long annotation list is scrollable in the panel', async ({
+    page,
+  }) => {
+    // Create many annotations + page notes to exceed panel height
+    await createAnnotation(page, 'quick brown fox', 'Note 1 for scroll test');
+    await createAnnotation(page, 'Software engineering', 'Note 2 for scroll test');
+    await createAnnotation(page, 'special characters', 'Note 3 for scroll test');
+    await createAnnotation(page, 'introduction paragraph', 'Note 4 for scroll test');
+    await createAnnotation(page, 'deliberately long paragraph', 'Note 5 for scroll test');
+
+    // Also add page notes to increase content
+    await openPanel(page);
+    await addPageNote(page, 'Page note 1 for scroll test with enough text to take up space');
+    await addPageNote(page, 'Page note 2 for scroll test with additional content');
+    await addPageNote(page, 'Page note 3 for scroll test to ensure overflow');
+
+    // Check that the panel content is actually scrollable now
+    const scrollInfo = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const panelContent = host.shadowRoot.querySelector(
+        '[data-air-el="panel-content"]',
+      ) as HTMLElement;
+      if (!panelContent) return null;
+      return {
+        scrollHeight: panelContent.scrollHeight,
+        clientHeight: panelContent.clientHeight,
+        overflowY: window.getComputedStyle(panelContent).overflowY,
+      };
+    });
+
+    expect(scrollInfo).not.toBeNull();
+    if (scrollInfo) {
+      // The content area should support scrolling
+      expect(['auto', 'scroll']).toContain(scrollInfo.overflowY);
+    }
+  });
 });

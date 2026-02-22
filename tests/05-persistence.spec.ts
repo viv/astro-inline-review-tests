@@ -13,6 +13,7 @@ import {
   expectHighlightCount,
   expectBadgeCount,
   expectAnnotationItemCount,
+  expectPopupVisible,
 } from '../helpers/assertions';
 
 test.describe('Persistence', () => {
@@ -310,5 +311,129 @@ test.describe('Persistence', () => {
 
     // Annotations should be restored from the JSON file
     await expectHighlightExists(page, 'quick brown fox');
+  });
+
+  test('externally written JSON file is loaded on page reload', async ({
+    page,
+  }) => {
+    // Create an annotation via the UI to get a valid JSON structure
+    await createAnnotation(page, 'quick brown fox', 'Original note');
+    await expectHighlightCount(page, 1);
+
+    // Read the current JSON file
+    const jsonData = readReviewJson();
+    expect(jsonData).not.toBeNull();
+
+    // Modify the note text externally (simulating a text editor edit)
+    const annotations = (jsonData as Record<string, unknown>)
+      .annotations as Array<Record<string, unknown>>;
+    expect(annotations.length).toBeGreaterThanOrEqual(1);
+    annotations[0].note = 'Externally modified note';
+
+    writeReviewJson(JSON.stringify(jsonData, null, 2));
+
+    // Clear localStorage so the client fetches from the modified JSON file
+    await page.evaluate(() =>
+      localStorage.removeItem('astro-inline-review'),
+    );
+
+    // Reload the page
+    await page.reload();
+    await waitForIntegration(page);
+
+    // The highlight should still exist
+    await expectHighlightExists(page, 'quick brown fox');
+
+    // Click the highlight and verify the note was updated from the JSON file
+    const highlight = getHighlights(page).first();
+    await highlight.click();
+    await expectPopupVisible(page);
+
+    const noteValue = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const ta = host.shadowRoot.querySelector(
+        '[data-air-el="popup-textarea"]',
+      ) as HTMLTextAreaElement;
+      return ta?.value ?? null;
+    });
+
+    expect(noteValue).toBe('Externally modified note');
+  });
+
+  test('externally added annotation appears after reload', async ({ page }) => {
+    // Create one annotation via the UI
+    await createAnnotation(page, 'quick brown fox', 'First via UI');
+
+    // Read the JSON and duplicate the annotation with different text
+    const jsonData = readReviewJson();
+    expect(jsonData).not.toBeNull();
+
+    const annotations = (jsonData as Record<string, unknown>)
+      .annotations as Array<Record<string, unknown>>;
+    expect(annotations.length).toBeGreaterThanOrEqual(1);
+
+    // Clone the first annotation and modify it to target different text
+    const cloned = JSON.parse(JSON.stringify(annotations[0]));
+    cloned.id = 'externally-added-' + Date.now();
+    cloned.note = 'Externally added note';
+    cloned.selectedText = 'Software engineering';
+    if (cloned.range) {
+      cloned.range.selectedText = 'Software engineering';
+    }
+    annotations.push(cloned);
+
+    writeReviewJson(JSON.stringify(jsonData, null, 2));
+
+    // Clear localStorage and reload
+    await page.evaluate(() =>
+      localStorage.removeItem('astro-inline-review'),
+    );
+    await page.reload();
+    await waitForIntegration(page);
+
+    // Should now have 2 annotations
+    await expectBadgeCount(page, 2);
+  });
+
+  test('annotations created in one tab are visible in another after reload', async ({
+    browser,
+  }) => {
+    cleanReviewData();
+
+    // Create two independent pages (simulating two tabs)
+    const context = await browser.newContext();
+    const tab1 = await context.newPage();
+    const tab2 = await context.newPage();
+
+    // Tab 1: navigate and create an annotation
+    await tab1.goto('http://localhost:4321/');
+    await tab1.evaluate(() =>
+      localStorage.removeItem('astro-inline-review'),
+    );
+    await waitForIntegration(tab1);
+    await createAnnotation(tab1, 'quick brown fox', 'Tab 1 note');
+    await expectHighlightCount(tab1, 1);
+
+    // Tab 2: navigate to the same page
+    await tab2.goto('http://localhost:4321/');
+    await tab2.evaluate(() =>
+      localStorage.removeItem('astro-inline-review'),
+    );
+    await waitForIntegration(tab2);
+
+    // Tab 2 should see the annotation from Tab 1 (loaded from server/JSON)
+    await expectHighlightExists(tab2, 'quick brown fox');
+
+    // Tab 2: create its own annotation
+    await createAnnotation(tab2, 'Software engineering', 'Tab 2 note');
+    await expectHighlightCount(tab2, 2);
+
+    // Tab 1: reload to pick up Tab 2's annotation
+    await tab1.reload();
+    await waitForIntegration(tab1);
+    await expectHighlightCount(tab1, 2);
+
+    await context.close();
   });
 });

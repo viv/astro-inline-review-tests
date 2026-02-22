@@ -235,4 +235,166 @@ test.describe('Highlights', () => {
     const uniqueIds = new Set(ids);
     expect(uniqueIds.size).toBe(2);
   });
+
+  test('deleting a highlight merges adjacent text nodes', async ({ page }) => {
+    // Count the text node children of #about-paragraph before any annotation
+    const childNodeCountBefore = await page.evaluate(() => {
+      const p = document.getElementById('about-paragraph');
+      if (!p) return -1;
+      return Array.from(p.childNodes).filter(
+        (n) => n.nodeType === Node.TEXT_NODE,
+      ).length;
+    });
+
+    // Create an annotation (inserts a <mark> that splits text nodes)
+    await createAnnotation(page, 'quick brown fox', 'Normalise test');
+    await expectHighlightCount(page, 1);
+
+    // Verify the mark split text nodes (more child nodes now)
+    const childNodeCountWithMark = await page.evaluate(() => {
+      const p = document.getElementById('about-paragraph');
+      if (!p) return -1;
+      return p.childNodes.length;
+    });
+    expect(childNodeCountWithMark).toBeGreaterThan(childNodeCountBefore);
+
+    // Delete the annotation via the edit popup
+    const highlight = getHighlights(page).first();
+    await highlight.click();
+    await expectPopupVisible(page);
+
+    const deleteResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'DELETE' &&
+        resp.ok(),
+    );
+
+    await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return;
+      const btn =
+        host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
+        host.shadowRoot.querySelector('button[aria-label*="delete" i]');
+      if (btn) (btn as HTMLElement).click();
+    });
+
+    await deleteResponsePromise;
+    await expectHighlightCount(page, 0);
+
+    // After deletion + normalize(), the paragraph should have the same
+    // number of text node children as before the annotation was created
+    const childNodeCountAfter = await page.evaluate(() => {
+      const p = document.getElementById('about-paragraph');
+      if (!p) return -1;
+      return Array.from(p.childNodes).filter(
+        (n) => n.nodeType === Node.TEXT_NODE,
+      ).length;
+    });
+
+    expect(childNodeCountAfter).toBe(childNodeCountBefore);
+
+    // And the full text content should be unchanged
+    const textAfter = await page.locator('#about-paragraph').textContent();
+    expect(textAfter).toContain('The quick brown fox jumps over the lazy dog');
+  });
+
+  test('selection spanning a <strong> boundary creates a valid annotation', async ({
+    page,
+  }) => {
+    // Select text from plain text into the <strong> in #inline-elements-paragraph.
+    // "paragraph contains" is unique to that paragraph; "bold text" is inside <strong>.
+    await selectTextAcrossElements(page, 'paragraph contains', 'bold text');
+
+    const popup = shadowLocator(page, SELECTORS.popup);
+    await popup.waitFor({ state: 'visible' });
+
+    const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+    await textarea.fill('Spans into strong');
+
+    const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/__inline-review/api/annotations') &&
+          resp.request().method() === 'POST' &&
+          resp.ok(),
+      ),
+      saveBtn.click(),
+    ]);
+    await popup.waitFor({ state: 'hidden' });
+    await page.waitForTimeout(200);
+
+    const highlightCount = await getHighlights(page).count();
+    expect(highlightCount).toBeGreaterThanOrEqual(1);
+    await expectBadgeCount(page, 1);
+
+    // Verify the annotation persists across reload
+    await page.reload();
+    await waitForIntegration(page);
+    await expectBadgeCount(page, 1);
+  });
+
+  test('selection spanning <em> and <a> elements creates a valid annotation', async ({
+    page,
+  }) => {
+    await selectTextAcrossElements(page, 'italic text', 'hyperlink element');
+
+    const popup = shadowLocator(page, SELECTORS.popup);
+    await popup.waitFor({ state: 'visible' });
+
+    const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+    await textarea.fill('Spans em and a');
+
+    const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/__inline-review/api/annotations') &&
+          resp.request().method() === 'POST' &&
+          resp.ok(),
+      ),
+      saveBtn.click(),
+    ]);
+    await popup.waitFor({ state: 'hidden' });
+    await page.waitForTimeout(200);
+
+    const highlightCount = await getHighlights(page).count();
+    expect(highlightCount).toBeGreaterThanOrEqual(1);
+    await expectBadgeCount(page, 1);
+  });
+
+  test('annotation within a single <strong> element works', async ({
+    page,
+  }) => {
+    await selectText(page, 'bold text');
+
+    const popup = shadowLocator(page, SELECTORS.popup);
+    await popup.waitFor({ state: 'visible' });
+
+    const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+    await textarea.fill('Inside strong only');
+
+    const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    await Promise.all([
+      page.waitForResponse(
+        (resp) =>
+          resp.url().includes('/__inline-review/api/annotations') &&
+          resp.request().method() === 'POST' &&
+          resp.ok(),
+      ),
+      saveBtn.click(),
+    ]);
+    await popup.waitFor({ state: 'hidden' });
+    await page.waitForTimeout(100);
+
+    await expectHighlightExists(page, 'bold text');
+    await expectBadgeCount(page, 1);
+
+    // Verify the highlight is inside the <strong> element
+    const parentTag = await getHighlights(page)
+      .first()
+      .evaluate((el) => el.parentElement?.tagName.toLowerCase());
+    expect(parentTag).toBe('strong');
+  });
 });
