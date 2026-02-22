@@ -43,7 +43,7 @@ npm run test:ui       # interactive Playwright UI
 | `10-keyboard-shortcuts.spec.ts` | Keyboard shortcut handling |
 | `11-edge-cases.spec.ts` | Edge cases and error recovery |
 | `12-production-safety.spec.ts` | Zero traces in production builds |
-| `13-coverage-gaps-high-priority.spec.ts` | High-priority coverage gaps |
+| `13-element-annotations.spec.ts` | Element annotation (Alt+click) functionality |
 
 ## Licence
 
