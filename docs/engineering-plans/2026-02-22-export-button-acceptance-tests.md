@@ -3,7 +3,7 @@ generated_by: Claude Opus 4.6
 generation_date: 2026-02-22
 model_version: claude-opus-4-6
 purpose: implementation_plan
-status: draft
+status: implemented
 human_reviewer: matthewvivian
 tags: [export, button, acceptance-tests, playwright]
 ---
