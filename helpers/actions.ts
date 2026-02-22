@@ -470,6 +470,54 @@ export async function releaseAlt(page: Page): Promise<void> {
 }
 
 /**
+ * Delete an annotation from the panel using its Delete button.
+ * Waits for the API DELETE to complete before returning.
+ */
+export async function deleteAnnotationFromPanel(page: Page, index: number = 0): Promise<void> {
+  const deleteBtn = shadowLocator(page, SELECTORS.annotationDelete).nth(index);
+  await Promise.all([
+    page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'DELETE' &&
+        resp.ok(),
+    ),
+    deleteBtn.click(),
+  ]);
+}
+
+/**
+ * Seed an orphan annotation by writing a JSON file with an annotation
+ * whose text and XPath don't exist on the page.
+ */
+export function seedOrphanAnnotation(): void {
+  const store = {
+    version: 1,
+    annotations: [{
+      id: 'orphan-test-1',
+      type: 'text',
+      pageUrl: '/',
+      pageTitle: 'Test',
+      selectedText: 'text that absolutely does not exist on this page',
+      note: 'This should be orphaned',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      range: {
+        startXPath: '/html[1]/body[1]/main[1]/p[999]/text()[1]',
+        startOffset: 0,
+        endXPath: '/html[1]/body[1]/main[1]/p[999]/text()[1]',
+        endOffset: 48,
+        selectedText: 'text that absolutely does not exist on this page',
+        contextBefore: '',
+        contextAfter: '',
+      },
+    }],
+    pageNotes: [],
+  };
+  writeReviewJson(JSON.stringify(store));
+}
+
+/**
  * Alt+click an element to create an element annotation.
  * Pre-scrolls into view and waits for scroll events to settle
  * (mirrors selectText's approach — scrollIntoView fires async scroll

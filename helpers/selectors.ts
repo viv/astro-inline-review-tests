@@ -44,6 +44,7 @@ export const SELECTORS = {
   toast: '[data-air-el="toast"]',
   highlight: 'mark[data-air-id]',
   elementHighlight: '[data-air-element-id]',
+  annotationDelete: '[data-air-el="annotation-delete"]',
   inspectorOverlay: '[data-air-el="inspector-overlay"]',
   inspectorLabel: '[data-air-el="inspector-label"]',
   panelContent: '[data-air-el="panel-content"]',

@@ -214,6 +214,22 @@ export async function expectElementAnnotationItemCount(page: Page, count: number
 }
 
 /**
+ * Assert the number of orphan indicators visible in the panel.
+ * Uses expect.poll since the panel content renders asynchronously.
+ */
+export async function expectAnnotationOrphanIndicator(page: Page, count: number): Promise<void> {
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      return host?.shadowRoot?.querySelectorAll('.air-annotation-item__orphan').length ?? 0;
+    });
+  }, {
+    message: `Expected ${count} orphan indicator(s) in the panel`,
+    timeout: 5000,
+  }).toBe(count);
+}
+
+/**
  * Assert that the page has no console errors.
  * Should be called after setting up a console error listener.
  */
