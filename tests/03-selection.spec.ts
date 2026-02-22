@@ -210,4 +210,100 @@ test.describe('Text selection and annotation popup', () => {
 
     expect(isFocused).toBe(true);
   });
+
+  test('popup does not overflow below the viewport', async ({ page }) => {
+    // Scroll to the very bottom of the page so the selection is near the
+    // bottom edge of the viewport
+    await page.evaluate(() =>
+      window.scrollTo(0, document.body.scrollHeight),
+    );
+    await page.waitForTimeout(100);
+
+    // Select the last padding paragraph text which is near the bottom
+    await selectText(page, 'Final padding paragraph on the home page');
+    await expectPopupVisible(page);
+
+    // The popup's bottom edge must not exceed the viewport height
+    const positions = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const popup = host.shadowRoot.querySelector(
+        '[data-air-el="popup"]',
+      ) as HTMLElement;
+      if (!popup) return null;
+      const rect = popup.getBoundingClientRect();
+      return {
+        popupBottom: rect.bottom,
+        popupTop: rect.top,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    expect(positions).not.toBeNull();
+    if (positions) {
+      expect(positions.popupBottom).toBeLessThanOrEqual(
+        positions.viewportHeight + 5,
+      );
+      expect(positions.popupTop).toBeGreaterThanOrEqual(-5);
+    }
+  });
+
+  test('popup does not overflow above the viewport', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(100);
+
+    await selectText(page, 'introduction paragraph');
+    await expectPopupVisible(page);
+
+    const positions = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const popup = host.shadowRoot.querySelector(
+        '[data-air-el="popup"]',
+      ) as HTMLElement;
+      if (!popup) return null;
+      const rect = popup.getBoundingClientRect();
+      return {
+        popupTop: rect.top,
+        popupBottom: rect.bottom,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    expect(positions).not.toBeNull();
+    if (positions) {
+      expect(positions.popupTop).toBeGreaterThanOrEqual(-5);
+      expect(positions.popupBottom).toBeLessThanOrEqual(
+        positions.viewportHeight + 5,
+      );
+    }
+  });
+
+  test('popup does not overflow horizontally beyond viewport', async ({ page }) => {
+    await selectText(page, 'quick brown fox');
+    await expectPopupVisible(page);
+
+    const positions = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const popup = host.shadowRoot.querySelector(
+        '[data-air-el="popup"]',
+      ) as HTMLElement;
+      if (!popup) return null;
+      const rect = popup.getBoundingClientRect();
+      return {
+        popupLeft: rect.left,
+        popupRight: rect.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+
+    expect(positions).not.toBeNull();
+    if (positions) {
+      expect(positions.popupLeft).toBeGreaterThanOrEqual(-5);
+      expect(positions.popupRight).toBeLessThanOrEqual(
+        positions.viewportWidth + 5,
+      );
+    }
+  });
 });

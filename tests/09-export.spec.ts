@@ -216,6 +216,16 @@ test.describe('Export', () => {
     ).toContain('quick brown fox');
   });
 
+  test('toast shows success message content after export', async ({ page }) => {
+    await createAnnotation(page, 'quick brown fox', 'Toast content test');
+
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await exportShortcut(page);
+
+    // Verify the toast is visible AND contains a meaningful success message
+    await expectToastVisible(page, 'Copied');
+  });
+
   test('export includes annotations from all pages', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Home export all');
 

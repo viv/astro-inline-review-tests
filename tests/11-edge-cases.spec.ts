@@ -12,6 +12,8 @@ import {
   expectHighlightCount,
   expectBadgeCount,
   expectPopupVisible,
+  expectHighlightNotExists,
+  createConsoleErrorCollector,
 } from '../helpers/assertions';
 
 test.describe('Edge cases', () => {
@@ -172,5 +174,185 @@ test.describe('Edge cases', () => {
 
     await expectBadgeCount(page, 1);
     await expectHighlightExists(page, 'dynamically added after page load');
+  });
+
+  test('create and then immediately delete does not corrupt state', async ({
+    page,
+  }) => {
+    // Create two annotations
+    await createAnnotation(page, 'quick brown fox', 'First for mixed ops');
+    await createAnnotation(page, 'Software engineering', 'Second for mixed ops');
+    await expectHighlightCount(page, 2);
+    await expectBadgeCount(page, 2);
+
+    // Delete the first annotation while the state is fresh
+    const firstHighlight = getHighlights(page).first();
+    await firstHighlight.click();
+    await expectPopupVisible(page);
+
+    const deleteResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'DELETE' &&
+        resp.ok(),
+    );
+
+    await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return;
+      const btn =
+        host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
+        host.shadowRoot.querySelector('button[aria-label*="delete" i]');
+      if (btn) (btn as HTMLElement).click();
+    });
+
+    await deleteResponsePromise;
+
+    // Immediately create a third annotation (mixed create after delete)
+    await createAnnotation(page, 'special characters', 'Third after delete');
+
+    // Should have exactly 2 highlights (second + third; first was deleted)
+    await expectHighlightCount(page, 2);
+    await expectBadgeCount(page, 2);
+
+    // Verify persistence survives the mixed operations
+    await page.reload();
+    await waitForIntegration(page);
+
+    await expectHighlightCount(page, 2);
+    await expectBadgeCount(page, 2);
+  });
+
+  test('rapid create-edit sequence preserves data integrity', async ({
+    page,
+  }) => {
+    // Create an annotation and immediately edit it
+    await createAnnotation(page, 'quick brown fox', 'Original rapid note');
+
+    // Click highlight to edit immediately
+    const highlight = getHighlights(page).first();
+    await highlight.click();
+    await expectPopupVisible(page);
+
+    const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+    await textarea.clear();
+    await textarea.fill('Rapidly edited note');
+
+    const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    const patchResponsePromise = page.waitForResponse(
+      (resp) =>
+        resp.url().includes('/__inline-review/api/annotations') &&
+        resp.request().method() === 'PATCH' &&
+        resp.ok(),
+    );
+    await saveBtn.click();
+    await patchResponsePromise;
+
+    // Immediately create a second annotation
+    await createAnnotation(page, 'Software engineering', 'Second rapid note');
+
+    await expectHighlightCount(page, 2);
+
+    // Verify the edit persisted correctly
+    await page.reload();
+    await waitForIntegration(page);
+
+    await expectHighlightCount(page, 2);
+
+    // Verify the first annotation has the edited note
+    const firstHighlight = getHighlights(page).first();
+    await firstHighlight.click();
+
+    const noteValue = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return null;
+      const ta = host.shadowRoot.querySelector(
+        '[data-air-el="popup-textarea"]',
+      ) as HTMLTextAreaElement;
+      return ta?.value ?? null;
+    });
+
+    expect(noteValue).toBe('Rapidly edited note');
+  });
+
+  test('500 on annotation POST does not crash the UI', async ({ page }) => {
+    const errors = createConsoleErrorCollector(page);
+
+    // Intercept the annotation API and return 500
+    await page.route('**/__inline-review/api/annotations', (route) => {
+      if (route.request().method() === 'POST') {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Internal Server Error' }),
+        });
+      }
+      return route.continue();
+    });
+
+    // Try to create an annotation
+    await selectText(page, 'quick brown fox');
+    await expectPopupVisible(page);
+
+    const textarea = shadowLocator(page, SELECTORS.popupTextarea);
+    await textarea.fill('Will fail');
+
+    const saveBtn = shadowLocator(page, SELECTORS.popupSave);
+    await saveBtn.click();
+
+    // Wait for the error to propagate
+    await page.waitForTimeout(500);
+
+    // The integration should still be functional — FAB should still be visible
+    const fab = shadowLocator(page, SELECTORS.fab);
+    await expect(fab).toBeVisible();
+
+    // No highlight should be created (the save failed)
+    await expectHighlightCount(page, 0);
+
+    // Unroute so subsequent navigations work
+    await page.unroute('**/__inline-review/api/annotations');
+  });
+
+  test('500 on annotation DELETE does not corrupt state', async ({ page }) => {
+    // Create an annotation successfully first
+    await createAnnotation(page, 'quick brown fox', 'Will try to delete');
+    await expectHighlightCount(page, 1);
+
+    // Now intercept DELETE to return 500
+    await page.route('**/__inline-review/api/annotations/*', (route) => {
+      if (route.request().method() === 'DELETE') {
+        return route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Internal Server Error' }),
+        });
+      }
+      return route.continue();
+    });
+
+    // Try to delete the annotation
+    const highlight = getHighlights(page).first();
+    await highlight.click();
+    await expectPopupVisible(page);
+
+    await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return;
+      const btn =
+        host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
+        host.shadowRoot.querySelector('button[aria-label*="delete" i]');
+      if (btn) (btn as HTMLElement).click();
+    });
+
+    // Wait for the error to propagate
+    await page.waitForTimeout(500);
+
+    // FAB should still be visible (integration not crashed)
+    const fab = shadowLocator(page, SELECTORS.fab);
+    await expect(fab).toBeVisible();
+
+    // Unroute
+    await page.unroute('**/__inline-review/api/annotations/*');
   });
 });
