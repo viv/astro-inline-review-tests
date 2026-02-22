@@ -1,15 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
-import { shadowLocator, SELECTORS } from '../helpers/selectors';
+import { shadowLocator, SELECTORS, getHighlights } from '../helpers/selectors';
 import {
   waitForIntegration,
   cleanReviewData,
   createAnnotation,
+  createElementAnnotation,
   openPanel,
+  clickExportButton,
   readReviewStore,
   writeReviewStore,
+  getClipboardText,
 } from '../helpers/actions';
 import {
   expectAnnotationItemCount,
+  expectElementAnnotationItemCount,
 } from '../helpers/assertions';
 
 /**
@@ -267,6 +271,212 @@ test.describe('MCP resolved state and agent replies', () => {
       // Note should still be present
       const note = shadowLocator(page, '.air-annotation-item__note');
       await expect(note).toContainText('Has empty replies');
+    });
+
+    test('F4: resolved element annotation shows resolved state', async ({ page }) => {
+      // Create element annotation via browser, then enrich with resolvedAt
+      await createElementAnnotation(page, '#hero-section', 'Element to resolve');
+
+      const store = readReviewStore();
+      expect(store).not.toBeNull();
+      const annotation = store!.annotations[store!.annotations.length - 1];
+      annotation.resolvedAt = new Date().toISOString();
+      writeReviewStore(store! as { version: 1; annotations: Array<Record<string, unknown>>; pageNotes: Array<Record<string, unknown>> });
+
+      await page.reload();
+      await waitForIntegration(page);
+
+      // Element highlight should exist with resolved styling (green outline)
+      const elementHighlight = page.locator('[data-air-element-id]');
+      await expect(elementHighlight).toHaveCount(1);
+      await expect(elementHighlight).toHaveCSS('outline-color', 'rgba(34, 197, 94, 0.5)');
+
+      // Panel should show resolved indicator
+      await openPanel(page);
+      await expectElementAnnotationItemCount(page, 1);
+      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      await expect(badge).toBeVisible();
+      await expect(badge).toContainText('Resolved');
+    });
+  });
+
+  // ── Group C: Resolved highlights ────────────────────────────────────
+
+  test.describe('Group C: Resolved highlights', () => {
+    test('C1: resolved annotation highlight has distinct styling', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Will be resolved', {
+        resolvedAt: new Date().toISOString(),
+      });
+
+      // The highlight mark should exist in the light DOM
+      const highlights = getHighlights(page);
+      await expect(highlights).toHaveCount(1);
+
+      // Resolved highlights use green background: rgba(34,197,94,0.2)
+      // Default (unresolved) uses amber: rgba(217,119,6,0.3)
+      const mark = highlights.first();
+      await expect(mark).toHaveCSS('background-color', 'rgba(34, 197, 94, 0.2)');
+    });
+
+    test('C2: unresolved and resolved highlights coexist', async ({ page }) => {
+      await createAnnotation(page, 'quick brown fox', 'Will be resolved');
+      await createAnnotation(page, 'Software engineering', 'Stays unresolved');
+
+      // Resolve only the first annotation
+      const store = readReviewStore();
+      expect(store).not.toBeNull();
+      store!.annotations[0].resolvedAt = new Date().toISOString();
+      writeReviewStore(store! as { version: 1; annotations: Array<Record<string, unknown>>; pageNotes: Array<Record<string, unknown>> });
+
+      await page.reload();
+      await waitForIntegration(page);
+
+      // Both highlights should exist
+      const highlights = getHighlights(page);
+      await expect(highlights).toHaveCount(2);
+
+      // Get background colours of both marks
+      const colours = await highlights.evaluateAll((marks) =>
+        marks.map((m) => getComputedStyle(m).backgroundColor),
+      );
+
+      // One should be resolved (green) and one should be default (amber)
+      const resolvedColour = 'rgba(34, 197, 94, 0.2)';
+      const defaultColour = 'rgba(217, 119, 6, 0.3)';
+
+      expect(colours).toContain(resolvedColour);
+      expect(colours).toContain(defaultColour);
+      expect(colours[0]).not.toEqual(colours[1]);
+    });
+  });
+
+  // ── Group D: Export with resolved & replies ─────────────────────────
+
+  test.describe('Group D: Export with resolved & replies', () => {
+    test('D1: export includes [Resolved] indicator', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Resolved note', {
+        resolvedAt: new Date().toISOString(),
+      });
+
+      const exportContent = await page.evaluate(async () => {
+        const response = await fetch('/__inline-review/api/export');
+        return response.text();
+      });
+
+      expect(exportContent).toContain('quick brown fox');
+      expect(exportContent).toContain('✅ [Resolved]');
+    });
+
+    test('D2: export includes agent replies as blockquotes', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Has replies', {
+        replies: [
+          { message: 'Looks good to me', createdAt: '2025-06-15T10:00:00.000Z' },
+          { message: 'No further issues', createdAt: '2025-06-15T11:00:00.000Z' },
+        ],
+      });
+
+      const exportContent = await page.evaluate(async () => {
+        const response = await fetch('/__inline-review/api/export');
+        return response.text();
+      });
+
+      expect(exportContent).toContain('quick brown fox');
+      expect(exportContent).toContain('> **Agent:** Looks good to me');
+      expect(exportContent).toContain('> **Agent:** No further issues');
+    });
+
+    test('D3: clipboard export includes resolved and reply data', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Clipboard resolved test', {
+        resolvedAt: new Date().toISOString(),
+        replies: [
+          { message: 'Agent clipboard reply', createdAt: new Date().toISOString() },
+        ],
+      });
+
+      await openPanel(page);
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+
+      await clickExportButton(page);
+
+      // Wait for clipboard to be populated
+      await expect.poll(
+        () => page.evaluate(() => navigator.clipboard.readText()),
+        { message: 'Clipboard should contain exported content', timeout: 2000 },
+      ).toContain('quick brown fox');
+
+      const clipboardContent = await getClipboardText(page);
+      expect(clipboardContent).toContain('✅ [Resolved]');
+      expect(clipboardContent).toContain('> **Agent:** Agent clipboard reply');
+    });
+  });
+
+  // ── Group E: REST API compatibility ─────────────────────────────────
+
+  test.describe('Group E: REST API compatibility', () => {
+    test('E1: GET /annotations returns resolvedAt and replies fields', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'API test', {
+        resolvedAt: '2025-06-15T14:30:00.000Z',
+        replies: [
+          { message: 'API reply test', createdAt: '2025-06-15T15:00:00.000Z' },
+        ],
+      });
+
+      const responseData = await page.evaluate(async () => {
+        const response = await fetch('/__inline-review/api/annotations');
+        return response.json();
+      });
+
+      // Response should be a store with annotations array
+      expect(responseData.annotations).toBeDefined();
+      expect(responseData.annotations.length).toBeGreaterThanOrEqual(1);
+
+      const annotation = responseData.annotations[0];
+      expect(annotation.resolvedAt).toBe('2025-06-15T14:30:00.000Z');
+      expect(annotation.replies).toBeDefined();
+      expect(annotation.replies).toHaveLength(1);
+      expect(annotation.replies[0].message).toBe('API reply test');
+      expect(annotation.replies[0].createdAt).toBe('2025-06-15T15:00:00.000Z');
+    });
+
+    test('E2: PATCH /annotations/:id does not clear resolvedAt or replies', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Will be patched', {
+        resolvedAt: '2025-06-15T14:30:00.000Z',
+        replies: [
+          { message: 'Should survive PATCH', createdAt: '2025-06-15T15:00:00.000Z' },
+        ],
+      });
+
+      // Get the annotation ID from the store
+      const store = readReviewStore();
+      expect(store).not.toBeNull();
+      const annotationId = store!.annotations[0].id as string;
+
+      // PATCH to update the note
+      const patchResponse = await page.evaluate(
+        async ({ id }) => {
+          const response = await fetch(`/__inline-review/api/annotations/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note: 'Updated note after PATCH' }),
+          });
+          return { ok: response.ok, status: response.status };
+        },
+        { id: annotationId },
+      );
+
+      expect(patchResponse.ok).toBe(true);
+
+      // Read back from the file and verify resolvedAt and replies are preserved
+      const updatedStore = readReviewStore();
+      expect(updatedStore).not.toBeNull();
+      const updatedAnnotation = updatedStore!.annotations[0];
+
+      expect(updatedAnnotation.note).toBe('Updated note after PATCH');
+      expect(updatedAnnotation.resolvedAt).toBe('2025-06-15T14:30:00.000Z');
+      expect(updatedAnnotation.replies).toBeDefined();
+      const replies = updatedAnnotation.replies as Array<{ message: string; createdAt: string }>;
+      expect(replies).toHaveLength(1);
+      expect(replies[0].message).toBe('Should survive PATCH');
     });
   });
 });
