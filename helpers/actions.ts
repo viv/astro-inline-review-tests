@@ -1,4 +1,4 @@
-import { type Page } from '@playwright/test';
+import { type Page, expect } from '@playwright/test';
 import { shadowLocator, SELECTORS } from './selectors';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
@@ -471,10 +471,17 @@ export async function releaseAlt(page: Page): Promise<void> {
 
 /**
  * Delete an annotation from the panel using its Delete button.
+ * Uses two-click confirmation: first click shows "Sure?", second click executes.
  * Waits for the API DELETE to complete before returning.
  */
 export async function deleteAnnotationFromPanel(page: Page, index: number = 0): Promise<void> {
   const deleteBtn = shadowLocator(page, SELECTORS.annotationDelete).nth(index);
+
+  // First click: triggers "Sure?" confirmation state
+  await deleteBtn.click();
+  await expect(deleteBtn).toHaveAttribute('data-air-state', 'confirming');
+
+  // Second click: executes the delete — wait for the API response
   await Promise.all([
     page.waitForResponse(
       (resp) =>
