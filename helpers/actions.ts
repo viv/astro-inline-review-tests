@@ -410,7 +410,7 @@ export function writeReviewJson(content: string): void {
 
 /**
  * Write a pre-built review store to inline-review.json.
- * Used to simulate MCP server writes (resolvedAt, replies).
+ * Used to simulate MCP server writes (status, addressedAt, replies).
  */
 export function writeReviewStore(store: {
   version: 1;

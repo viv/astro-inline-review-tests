@@ -17,17 +17,17 @@ import {
 } from '../helpers/assertions';
 
 /**
- * Tests for MCP-produced data: resolved annotations and agent replies.
+ * Tests for MCP-produced data: addressed annotations and agent replies.
  *
  * Strategy: create annotations via the browser (captures correct XPaths),
- * then modify inline-review.json to add resolvedAt/replies fields.
+ * then modify inline-review.json to add status/addressedAt/replies fields.
  * This avoids XPath calibration issues and ensures annotations are
  * not orphaned after reload.
  */
 
 /**
  * Create an annotation via the browser, then modify the persisted store
- * to add fields (resolvedAt, replies). Reloads the page so the panel
+ * to add fields (status, addressedAt, replies). Reloads the page so the panel
  * picks up the changes.
  */
 async function createAndEnrich(
@@ -46,7 +46,7 @@ async function createAndEnrich(
   await waitForIntegration(page);
 }
 
-test.describe('MCP resolved state and agent replies', () => {
+test.describe('MCP addressed state and agent replies', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
@@ -54,30 +54,32 @@ test.describe('MCP resolved state and agent replies', () => {
     await waitForIntegration(page);
   });
 
-  // ── Group A: Resolved annotations in panel ──────────────────────────
+  // ── Group A: Addressed annotations in panel ──────────────────────────
 
-  test.describe('Group A: Resolved annotations in panel', () => {
-    test('A1: resolved annotation shows checkmark badge in panel', async ({ page }) => {
+  test.describe('Group A: Addressed annotations in panel', () => {
+    test('A1: addressed annotation shows wrench badge in panel', async ({ page }) => {
       await createAndEnrich(page, 'quick brown fox', 'Test note', {
-        resolvedAt: new Date().toISOString(),
+        status: 'addressed',
+        addressedAt: new Date().toISOString(),
       });
 
       await openPanel(page);
 
-      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
       await expect(badge).toBeVisible();
-      await expect(badge).toContainText('Resolved');
+      await expect(badge).toContainText('Addressed');
     });
 
-    test('A2: resolved annotation has dimmed/distinct styling', async ({ page }) => {
+    test('A2: addressed annotation has dimmed/distinct styling', async ({ page }) => {
       // Create two annotations on different text
-      await createAnnotation(page, 'quick brown fox', 'Will be resolved');
-      await createAnnotation(page, 'Software engineering', 'Stays unresolved');
+      await createAnnotation(page, 'quick brown fox', 'Will be addressed');
+      await createAnnotation(page, 'Software engineering', 'Stays open');
 
-      // Resolve only the first annotation
+      // Address only the first annotation
       const store = readReviewStore();
       expect(store).not.toBeNull();
-      store!.annotations[0].resolvedAt = new Date().toISOString();
+      store!.annotations[0].status = 'addressed';
+      store!.annotations[0].addressedAt = new Date().toISOString();
       writeReviewStore(store! as { version: 1; annotations: Array<Record<string, unknown>>; pageNotes: Array<Record<string, unknown>> });
 
       await page.reload();
@@ -87,39 +89,36 @@ test.describe('MCP resolved state and agent replies', () => {
       // Both items should be in the panel
       await expectAnnotationItemCount(page, 2);
 
-      // Resolved item should have the --resolved CSS class
-      const resolvedItems = shadowLocator(page, '.air-annotation-item--resolved');
-      await expect(resolvedItems).toHaveCount(1);
+      // Addressed item should have the --addressed CSS class
+      const addressedItems = shadowLocator(page, '.air-annotation-item--addressed');
+      await expect(addressedItems).toHaveCount(1);
 
-      // The resolved item's text should have line-through
-      const resolvedText = resolvedItems.locator('.air-annotation-item__text');
-      await expect(resolvedText).toHaveCSS('text-decoration-line', 'line-through');
+      // The addressed item should have reduced opacity
+      await expect(addressedItems).toHaveCSS('opacity', '0.85');
 
-      // The resolved item should have reduced opacity
-      await expect(resolvedItems).toHaveCSS('opacity', '0.7');
-
-      // The unresolved item should have full opacity
-      const unresolvedItem = shadowLocator(
+      // The open item should have full opacity
+      const openItem = shadowLocator(
         page,
-        '[data-air-el="annotation-item"]:not(.air-annotation-item--resolved)',
+        '[data-air-el="annotation-item"]:not(.air-annotation-item--addressed)',
       );
-      await expect(unresolvedItem).toHaveCount(1);
-      await expect(unresolvedItem).toHaveCSS('opacity', '1');
+      await expect(openItem).toHaveCount(1);
+      await expect(openItem).toHaveCSS('opacity', '1');
     });
 
-    test('A3: resolved annotation shows resolvedAt timestamp', async ({ page }) => {
-      const resolvedTime = '2025-06-15T14:30:00.000Z';
+    test('A3: addressed annotation shows addressedAt timestamp', async ({ page }) => {
+      const addressedTime = '2025-06-15T14:30:00.000Z';
       await createAndEnrich(page, 'quick brown fox', 'Test note', {
-        resolvedAt: resolvedTime,
+        status: 'addressed',
+        addressedAt: addressedTime,
       });
 
       await openPanel(page);
 
-      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
       await expect(badge).toBeVisible();
 
       // The timestamp should be rendered in a human-readable format
-      const timeSpan = badge.locator('.air-annotation-item__resolved-time');
+      const timeSpan = badge.locator('.air-annotation-item__addressed-time');
       await expect(timeSpan).toBeVisible();
       const timeText = await timeSpan.textContent();
       expect(timeText).toBeTruthy();
@@ -206,15 +205,15 @@ test.describe('MCP resolved state and agent replies', () => {
   // ── Group F: Edge cases ─────────────────────────────────────────────
 
   test.describe('Group F: Edge cases', () => {
-    test('F1: annotation with replies but not resolved renders correctly', async ({ page }) => {
+    test('F1: annotation with replies but not addressed renders correctly', async ({ page }) => {
       await createAndEnrich(page, 'quick brown fox', 'Has replies only', {
         replies: [
           {
-            message: 'Agent reply without resolution',
+            message: 'Agent reply without addressing',
             createdAt: new Date().toISOString(),
           },
         ],
-        // Deliberately no resolvedAt
+        // Deliberately no status/addressedAt
       });
 
       await openPanel(page);
@@ -222,35 +221,35 @@ test.describe('MCP resolved state and agent replies', () => {
       // Reply should be visible
       const reply = shadowLocator(page, '[data-air-el="agent-reply"]');
       await expect(reply).toHaveCount(1);
-      await expect(reply).toContainText('Agent reply without resolution');
+      await expect(reply).toContainText('Agent reply without addressing');
 
-      // No resolved badge should be present
-      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      // No addressed badge should be present
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
       await expect(badge).toHaveCount(0);
 
-      // Item should NOT have resolved class
-      const resolvedItems = shadowLocator(page, '.air-annotation-item--resolved');
-      await expect(resolvedItems).toHaveCount(0);
+      // Item should NOT have addressed class
+      const addressedItems = shadowLocator(page, '.air-annotation-item--addressed');
+      await expect(addressedItems).toHaveCount(0);
     });
 
-    test('F2: annotation with no replies and no resolvedAt renders as before', async ({ page }) => {
+    test('F2: annotation with no replies and no addressedAt renders as before', async ({ page }) => {
       // Create a plain annotation (no modifications)
       await createAnnotation(page, 'quick brown fox', 'Plain annotation');
 
       await openPanel(page);
       await expectAnnotationItemCount(page, 1);
 
-      // No resolved badge
-      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      // No addressed badge
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
       await expect(badge).toHaveCount(0);
 
       // No agent replies
       const reply = shadowLocator(page, '[data-air-el="agent-reply"]');
       await expect(reply).toHaveCount(0);
 
-      // Item should NOT have resolved class
-      const resolvedItems = shadowLocator(page, '.air-annotation-item--resolved');
-      await expect(resolvedItems).toHaveCount(0);
+      // Item should NOT have addressed class
+      const addressedItems = shadowLocator(page, '.air-annotation-item--addressed');
+      await expect(addressedItems).toHaveCount(0);
 
       // Note should be present
       const note = shadowLocator(page, '.air-annotation-item__note');
@@ -273,59 +272,80 @@ test.describe('MCP resolved state and agent replies', () => {
       await expect(note).toContainText('Has empty replies');
     });
 
-    test('F4: resolved element annotation shows resolved state', async ({ page }) => {
-      // Create element annotation via browser, then enrich with resolvedAt
-      await createElementAnnotation(page, '#hero-section', 'Element to resolve');
+    test('F4: addressed element annotation shows addressed state', async ({ page }) => {
+      // Create element annotation via browser, then enrich with addressed status
+      await createElementAnnotation(page, '#hero-section', 'Element to address');
 
       const store = readReviewStore();
       expect(store).not.toBeNull();
       const annotation = store!.annotations[store!.annotations.length - 1];
-      annotation.resolvedAt = new Date().toISOString();
+      annotation.status = 'addressed';
+      annotation.addressedAt = new Date().toISOString();
       writeReviewStore(store! as { version: 1; annotations: Array<Record<string, unknown>>; pageNotes: Array<Record<string, unknown>> });
 
       await page.reload();
       await waitForIntegration(page);
 
-      // Element highlight should exist with resolved styling (green outline)
+      // Element highlight should exist with addressed styling (blue outline)
       const elementHighlight = page.locator('[data-air-element-id]');
       await expect(elementHighlight).toHaveCount(1);
-      await expect(elementHighlight).toHaveCSS('outline-color', 'rgba(34, 197, 94, 0.5)');
+      await expect(elementHighlight).toHaveCSS('outline-color', 'rgba(59, 130, 246, 0.5)');
 
-      // Panel should show resolved indicator
+      // Panel should show addressed indicator
       await openPanel(page);
       await expectElementAnnotationItemCount(page, 1);
-      const badge = shadowLocator(page, '[data-air-el="resolved-badge"]');
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
       await expect(badge).toBeVisible();
-      await expect(badge).toContainText('Resolved');
+      await expect(badge).toContainText('Addressed');
+    });
+
+    test('F5: legacy resolvedAt field is treated as addressed (backward compat)', async ({ page }) => {
+      // Simulate legacy data with resolvedAt but no status field
+      await createAndEnrich(page, 'quick brown fox', 'Legacy resolved note', {
+        resolvedAt: new Date().toISOString(),
+      });
+
+      await openPanel(page);
+
+      // Should be displayed as addressed (backward compat mapping)
+      const badge = shadowLocator(page, '[data-air-el="addressed-badge"]');
+      await expect(badge).toBeVisible();
+      await expect(badge).toContainText('Addressed');
+
+      // Should have addressed class
+      const addressedItems = shadowLocator(page, '.air-annotation-item--addressed');
+      await expect(addressedItems).toHaveCount(1);
     });
   });
 
-  // ── Group C: Resolved highlights ────────────────────────────────────
+  // ── Group C: Addressed highlights ────────────────────────────────────
 
-  test.describe('Group C: Resolved highlights', () => {
-    test('C1: resolved annotation highlight has distinct styling', async ({ page }) => {
-      await createAndEnrich(page, 'quick brown fox', 'Will be resolved', {
-        resolvedAt: new Date().toISOString(),
+  test.describe('Group C: Addressed highlights', () => {
+    test('C1: addressed annotation highlight has distinct styling', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Will be addressed', {
+        status: 'addressed',
+        addressedAt: new Date().toISOString(),
       });
 
       // The highlight mark should exist in the light DOM
       const highlights = getHighlights(page);
       await expect(highlights).toHaveCount(1);
 
-      // Resolved highlights use green background: rgba(34,197,94,0.2)
-      // Default (unresolved) uses amber: rgba(217,119,6,0.3)
+      // Addressed highlights use blue background: rgba(59,130,246,0.2)
+      // Default (open) uses amber: rgba(217,119,6,0.3)
       const mark = highlights.first();
-      await expect(mark).toHaveCSS('background-color', 'rgba(34, 197, 94, 0.2)');
+      await expect(mark).toHaveCSS('background-color', 'rgba(59, 130, 246, 0.2)');
     });
 
-    test('C2: unresolved and resolved highlights coexist', async ({ page }) => {
-      await createAnnotation(page, 'quick brown fox', 'Will be resolved');
-      await createAnnotation(page, 'Software engineering', 'Stays unresolved');
+    test('C2: open and addressed highlights coexist', async ({ page }) => {
+      await createAnnotation(page, 'quick brown fox', 'Will be addressed');
+      await createAnnotation(page, 'Software engineering', 'Stays open');
 
-      // Resolve only the first annotation
+      // Address only the first annotation
       const store = readReviewStore();
       expect(store).not.toBeNull();
-      store!.annotations[0].resolvedAt = new Date().toISOString();
+      store!.annotations[0].status = 'addressed';
+      store!.annotations[0].addressedAt = new Date().toISOString();
       writeReviewStore(store! as { version: 1; annotations: Array<Record<string, unknown>>; pageNotes: Array<Record<string, unknown>> });
 
       await page.reload();
@@ -340,22 +360,23 @@ test.describe('MCP resolved state and agent replies', () => {
         marks.map((m) => getComputedStyle(m).backgroundColor),
       );
 
-      // One should be resolved (green) and one should be default (amber)
-      const resolvedColour = 'rgba(34, 197, 94, 0.2)';
+      // One should be addressed (blue) and one should be default (amber)
+      const addressedColour = 'rgba(59, 130, 246, 0.2)';
       const defaultColour = 'rgba(217, 119, 6, 0.3)';
 
-      expect(colours).toContain(resolvedColour);
+      expect(colours).toContain(addressedColour);
       expect(colours).toContain(defaultColour);
       expect(colours[0]).not.toEqual(colours[1]);
     });
   });
 
-  // ── Group D: Export with resolved & replies ─────────────────────────
+  // ── Group D: Export with addressed & replies ─────────────────────────
 
-  test.describe('Group D: Export with resolved & replies', () => {
-    test('D1: export includes [Resolved] indicator', async ({ page }) => {
-      await createAndEnrich(page, 'quick brown fox', 'Resolved note', {
-        resolvedAt: new Date().toISOString(),
+  test.describe('Group D: Export with addressed & replies', () => {
+    test('D1: export includes [Addressed] indicator', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Addressed note', {
+        status: 'addressed',
+        addressedAt: new Date().toISOString(),
       });
 
       const exportContent = await page.evaluate(async () => {
@@ -364,7 +385,7 @@ test.describe('MCP resolved state and agent replies', () => {
       });
 
       expect(exportContent).toContain('quick brown fox');
-      expect(exportContent).toContain('✅ [Resolved]');
+      expect(exportContent).toContain('🔧 [Addressed]');
     });
 
     test('D2: export includes agent replies as blockquotes', async ({ page }) => {
@@ -385,9 +406,10 @@ test.describe('MCP resolved state and agent replies', () => {
       expect(exportContent).toContain('> **Agent:** No further issues');
     });
 
-    test('D3: clipboard export includes resolved and reply data', async ({ page }) => {
-      await createAndEnrich(page, 'quick brown fox', 'Clipboard resolved test', {
-        resolvedAt: new Date().toISOString(),
+    test('D3: clipboard export includes addressed and reply data', async ({ page }) => {
+      await createAndEnrich(page, 'quick brown fox', 'Clipboard addressed test', {
+        status: 'addressed',
+        addressedAt: new Date().toISOString(),
         replies: [
           { message: 'Agent clipboard reply', createdAt: new Date().toISOString() },
         ],
@@ -405,7 +427,7 @@ test.describe('MCP resolved state and agent replies', () => {
       ).toContain('quick brown fox');
 
       const clipboardContent = await getClipboardText(page);
-      expect(clipboardContent).toContain('✅ [Resolved]');
+      expect(clipboardContent).toContain('🔧 [Addressed]');
       expect(clipboardContent).toContain('> **Agent:** Agent clipboard reply');
     });
   });
@@ -413,9 +435,10 @@ test.describe('MCP resolved state and agent replies', () => {
   // ── Group E: REST API compatibility ─────────────────────────────────
 
   test.describe('Group E: REST API compatibility', () => {
-    test('E1: GET /annotations returns resolvedAt and replies fields', async ({ page }) => {
+    test('E1: GET /annotations returns status, addressedAt and replies fields', async ({ page }) => {
       await createAndEnrich(page, 'quick brown fox', 'API test', {
-        resolvedAt: '2025-06-15T14:30:00.000Z',
+        status: 'addressed',
+        addressedAt: '2025-06-15T14:30:00.000Z',
         replies: [
           { message: 'API reply test', createdAt: '2025-06-15T15:00:00.000Z' },
         ],
@@ -431,16 +454,18 @@ test.describe('MCP resolved state and agent replies', () => {
       expect(responseData.annotations.length).toBeGreaterThanOrEqual(1);
 
       const annotation = responseData.annotations[0];
-      expect(annotation.resolvedAt).toBe('2025-06-15T14:30:00.000Z');
+      expect(annotation.status).toBe('addressed');
+      expect(annotation.addressedAt).toBe('2025-06-15T14:30:00.000Z');
       expect(annotation.replies).toBeDefined();
       expect(annotation.replies).toHaveLength(1);
       expect(annotation.replies[0].message).toBe('API reply test');
       expect(annotation.replies[0].createdAt).toBe('2025-06-15T15:00:00.000Z');
     });
 
-    test('E2: PATCH /annotations/:id does not clear resolvedAt or replies', async ({ page }) => {
+    test('E2: PATCH /annotations/:id does not clear addressedAt or replies', async ({ page }) => {
       await createAndEnrich(page, 'quick brown fox', 'Will be patched', {
-        resolvedAt: '2025-06-15T14:30:00.000Z',
+        status: 'addressed',
+        addressedAt: '2025-06-15T14:30:00.000Z',
         replies: [
           { message: 'Should survive PATCH', createdAt: '2025-06-15T15:00:00.000Z' },
         ],
@@ -466,13 +491,13 @@ test.describe('MCP resolved state and agent replies', () => {
 
       expect(patchResponse.ok).toBe(true);
 
-      // Read back from the file and verify resolvedAt and replies are preserved
+      // Read back from the file and verify addressedAt and replies are preserved
       const updatedStore = readReviewStore();
       expect(updatedStore).not.toBeNull();
       const updatedAnnotation = updatedStore!.annotations[0];
 
       expect(updatedAnnotation.note).toBe('Updated note after PATCH');
-      expect(updatedAnnotation.resolvedAt).toBe('2025-06-15T14:30:00.000Z');
+      expect(updatedAnnotation.addressedAt).toBe('2025-06-15T14:30:00.000Z');
       expect(updatedAnnotation.replies).toBeDefined();
       const replies = updatedAnnotation.replies as Array<{ message: string; createdAt: string }>;
       expect(replies).toHaveLength(1);
