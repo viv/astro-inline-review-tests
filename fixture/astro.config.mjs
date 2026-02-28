@@ -3,4 +3,5 @@ import inlineReview from 'astro-inline-review';
 
 export default defineConfig({
   integrations: [inlineReview()],
+  server: { port: 4399 },
 });

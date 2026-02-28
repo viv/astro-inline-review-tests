@@ -169,6 +169,12 @@ test.describe('Text selection and annotation popup', () => {
       }
     });
 
+    // Wait past the 400ms grace period that prevents scroll-dismissal
+    // immediately after popup creation (guards against rAF focus races).
+    // Without this, fast CI environments complete the whole sequence in
+    // under 400ms and the grace period blocks the dismissal.
+    await page.waitForTimeout(500);
+
     // Scroll the page beyond the 50px threshold
     await page.evaluate(() => window.scrollBy(0, 200));
     await expectPopupHidden(page);

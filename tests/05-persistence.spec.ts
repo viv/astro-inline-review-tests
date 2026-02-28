@@ -407,7 +407,7 @@ test.describe('Persistence', () => {
     const tab2 = await context.newPage();
 
     // Tab 1: navigate and create an annotation
-    await tab1.goto('http://localhost:4321/');
+    await tab1.goto('http://localhost:4399/');
     await tab1.evaluate(() =>
       localStorage.removeItem('astro-inline-review'),
     );
@@ -416,7 +416,7 @@ test.describe('Persistence', () => {
     await expectHighlightCount(tab1, 1);
 
     // Tab 2: navigate to the same page
-    await tab2.goto('http://localhost:4321/');
+    await tab2.goto('http://localhost:4399/');
     await tab2.evaluate(() =>
       localStorage.removeItem('astro-inline-review'),
     );
