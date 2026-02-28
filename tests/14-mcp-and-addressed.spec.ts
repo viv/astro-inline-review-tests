@@ -300,9 +300,13 @@ test.describe('MCP addressed state and agent replies', () => {
     });
 
     test('F5: legacy resolvedAt field is treated as addressed (backward compat)', async ({ page }) => {
-      // Simulate legacy data with resolvedAt but no status field
+      // Simulate legacy data with resolvedAt but no status field.
+      // Pass status: undefined so JSON.stringify drops the status key
+      // (the browser now sets status: 'open' on creation, but legacy data
+      // predates explicit status fields).
       await createAndEnrich(page, 'quick brown fox', 'Legacy resolved note', {
         resolvedAt: new Date().toISOString(),
+        status: undefined,
       });
 
       await openPanel(page);
