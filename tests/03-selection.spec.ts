@@ -154,13 +154,44 @@ test.describe('Text selection and annotation popup', () => {
     await expect(popup).not.toHaveAttribute('data-air-state', 'visible', { timeout: 500 });
   });
 
-  test('popup is dismissed when user scrolls', async ({ page }) => {
+  test('popup is dismissed when user scrolls in passive mode', async ({ page }) => {
     await selectText(page, 'quick brown fox');
     await expectPopupVisible(page);
 
-    // Scroll the page
+    // Blur the textarea so the popup is in "passive" mode — no active focus
+    // inside the popup. The popup auto-focuses the textarea on show, so we
+    // must explicitly move focus away to simulate the user not interacting.
+    await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (host?.shadowRoot) {
+        const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLElement;
+        textarea?.blur();
+      }
+    });
+
+    // Scroll the page beyond the 50px threshold
     await page.evaluate(() => window.scrollBy(0, 200));
     await expectPopupHidden(page);
+  });
+
+  test('popup is NOT dismissed when textarea is focused and user scrolls', async ({ page }) => {
+    await selectText(page, 'quick brown fox');
+    await expectPopupVisible(page);
+
+    // The textarea is auto-focused on show — verify it still has focus
+    const hasFocus = await page.evaluate(() => {
+      const host = document.getElementById('astro-inline-review-host');
+      if (!host?.shadowRoot) return false;
+      const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]');
+      return host.shadowRoot.activeElement === textarea;
+    });
+    expect(hasFocus).toBe(true);
+
+    // Scroll the page beyond the 50px threshold
+    await page.evaluate(() => window.scrollBy(0, 200));
+
+    // Popup should remain visible because the textarea has focus
+    await expectPopupVisible(page);
   });
 
   test('popup shows preview of selected text', async ({ page }) => {
