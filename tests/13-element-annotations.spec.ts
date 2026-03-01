@@ -11,7 +11,7 @@ import {
   openPanel,
   readReviewJson,
   getClipboardText,
-  exportShortcut,
+  clickExportButton,
 } from '../helpers/actions';
 import {
   expectPopupVisible,
@@ -433,7 +433,8 @@ test.describe('Element annotations', () => {
 
       await createElementAnnotation(page, '#hero-image', 'Export test note');
 
-      await exportShortcut(page);
+      await openPanel(page);
+      await clickExportButton(page);
 
       // Wait for clipboard content to be written
       await expect.poll(
@@ -452,7 +453,8 @@ test.describe('Element annotations', () => {
       await createAnnotation(page, 'quick brown fox', 'Text note');
       await createElementAnnotation(page, '#hero-image', 'Element note');
 
-      await exportShortcut(page);
+      await openPanel(page);
+      await clickExportButton(page);
 
       // Wait for clipboard content to be written
       await expect.poll(

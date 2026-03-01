@@ -286,10 +286,10 @@ test.describe('MCP addressed state and agent replies', () => {
       await page.reload();
       await waitForIntegration(page);
 
-      // Element highlight should exist with addressed styling (blue outline)
+      // Element highlight should exist with addressed styling (slate outline)
       const elementHighlight = page.locator('[data-air-element-id]');
       await expect(elementHighlight).toHaveCount(1);
-      await expect(elementHighlight).toHaveCSS('outline-color', 'rgba(59, 130, 246, 0.5)');
+      await expect(elementHighlight).toHaveCSS('outline-color', 'rgba(148, 163, 184, 0.5)');
 
       // Panel should show addressed indicator
       await openPanel(page);
@@ -335,10 +335,10 @@ test.describe('MCP addressed state and agent replies', () => {
       const highlights = getHighlights(page);
       await expect(highlights).toHaveCount(1);
 
-      // Addressed highlights use blue background: rgba(59,130,246,0.2)
+      // Addressed highlights use slate background: rgba(148,163,184,0.2)
       // Default (open) uses amber: rgba(217,119,6,0.3)
       const mark = highlights.first();
-      await expect(mark).toHaveCSS('background-color', 'rgba(59, 130, 246, 0.2)');
+      await expect(mark).toHaveCSS('background-color', 'rgba(148, 163, 184, 0.2)');
     });
 
     test('C2: open and addressed highlights coexist', async ({ page }) => {
@@ -364,8 +364,8 @@ test.describe('MCP addressed state and agent replies', () => {
         marks.map((m) => getComputedStyle(m).backgroundColor),
       );
 
-      // One should be addressed (blue) and one should be default (amber)
-      const addressedColour = 'rgba(59, 130, 246, 0.2)';
+      // One should be addressed (slate) and one should be default (amber)
+      const addressedColour = 'rgba(148, 163, 184, 0.2)';
       const defaultColour = 'rgba(217, 119, 6, 0.3)';
 
       expect(colours).toContain(addressedColour);

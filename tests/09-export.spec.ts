@@ -7,7 +7,6 @@ import {
   createAnnotationWithoutNote,
   openPanel,
   addPageNote,
-  exportShortcut,
   clickExportButton,
 } from '../helpers/actions';
 import { expectToastVisible } from '../helpers/assertions';
@@ -177,51 +176,23 @@ test.describe('Export', () => {
     expect(isEmpty).toBe(true);
   });
 
-  test('export copies to clipboard via keyboard shortcut', async ({ page }) => {
-    await createAnnotation(page, 'quick brown fox', 'Clipboard test');
-
-    // Grant clipboard permissions
-    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-
-    await exportShortcut(page);
-
-    // Wait for export to complete (server fetch + clipboard write)
-    await expect.poll(
-      () => page.evaluate(() => navigator.clipboard.readText()),
-      { message: 'Clipboard should contain exported content', timeout: 2000 },
-    ).toContain('quick brown fox');
-  });
-
   test('toast notification appears on export', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Toast test');
 
+    await openPanel(page);
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    // Trigger export via keyboard shortcut
-    await exportShortcut(page);
+    await clickExportButton(page);
 
     await expectToastVisible(page);
-  });
-
-  test('export via keyboard shortcut', async ({ page }) => {
-    await createAnnotation(page, 'quick brown fox', 'Shortcut export test');
-
-    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-
-    await exportShortcut(page);
-
-    // Wait for export to complete (server fetch + clipboard write)
-    await expect.poll(
-      () => page.evaluate(() => navigator.clipboard.readText()),
-      { message: 'Clipboard should contain exported content', timeout: 2000 },
-    ).toContain('quick brown fox');
   });
 
   test('toast shows success message content after export', async ({ page }) => {
     await createAnnotation(page, 'quick brown fox', 'Toast content test');
 
+    await openPanel(page);
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-    await exportShortcut(page);
+    await clickExportButton(page);
 
     // Verify the toast is visible AND contains a meaningful success message
     await expectToastVisible(page, 'Copied');
@@ -234,9 +205,10 @@ test.describe('Export', () => {
     await waitForIntegration(page);
     await createAnnotation(page, 'wallaby bounces', 'Second export all');
 
+    await openPanel(page);
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    await exportShortcut(page);
+    await clickExportButton(page);
 
     // Wait for export to complete (server fetch + clipboard write)
     await expect.poll(
