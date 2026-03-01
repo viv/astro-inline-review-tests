@@ -28,7 +28,7 @@ test.describe('Export', () => {
     });
 
     // Should be valid markdown with expected structure
-    expect(exportContent).toContain('# Inline Review');
+    expect(exportContent).toContain('# Review Loop');
     expect(exportContent).toContain('Exported:');
   });
 
@@ -171,7 +171,7 @@ test.describe('Export', () => {
       exportContent.toLowerCase().includes('no data') ||
       exportContent.toLowerCase().includes('empty') ||
       exportContent.trim().length === 0 ||
-      exportContent.includes('# Inline Review'); // Even empty export has header
+      exportContent.includes('# Review Loop'); // Even empty export has header
 
     expect(isEmpty).toBe(true);
   });
@@ -244,7 +244,7 @@ test.describe('Export', () => {
     ).toContain('quick brown fox');
 
     const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboardContent).toContain('# Inline Review');
+    expect(clipboardContent).toContain('# Review Loop');
     expect(clipboardContent).toContain('Button clipboard test');
   });
 
