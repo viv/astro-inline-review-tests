@@ -7,7 +7,7 @@ test.describe('Floating Action Button (FAB)', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -16,7 +16,7 @@ test.describe('Floating Action Button (FAB)', () => {
 
     // Verify it is positioned fixed in the bottom-right
     const fabPosition = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       if (!fab) return null;
@@ -65,7 +65,7 @@ test.describe('Floating Action Button (FAB)', () => {
 
   test('FAB maintains fixed position when scrolling', async ({ page }) => {
     const fabPositionBefore = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       return fab?.getBoundingClientRect().top ?? null;
@@ -80,7 +80,7 @@ test.describe('Floating Action Button (FAB)', () => {
     ).toBe(true);
 
     const fabPositionAfter = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       return fab?.getBoundingClientRect().top ?? null;
@@ -92,7 +92,7 @@ test.describe('Floating Action Button (FAB)', () => {
 
   test('FAB has accessible aria-label', async ({ page }) => {
     const ariaLabel = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]');
       return fab?.getAttribute('aria-label') ?? null;
@@ -104,7 +104,7 @@ test.describe('Floating Action Button (FAB)', () => {
 
   test('FAB has title attribute for tooltip', async ({ page }) => {
     const title = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]');
       return fab?.getAttribute('title') ?? null;
@@ -132,7 +132,7 @@ test.describe('Floating Action Button (FAB)', () => {
 
   test('FAB z-index is above normal site content', async ({ page }) => {
     const zIndex = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const fab = host.shadowRoot.querySelector('[data-air-el="fab"]') as HTMLElement;
       if (!fab) return null;

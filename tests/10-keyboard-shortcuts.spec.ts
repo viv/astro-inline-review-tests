@@ -21,7 +21,7 @@ test.describe('Keyboard shortcuts', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -95,7 +95,7 @@ test.describe('Keyboard shortcuts', () => {
     await expect.poll(
       () =>
         page.evaluate(() => {
-          const host = document.getElementById('astro-inline-review-host');
+          const host = document.getElementById('review-loop-host');
           if (!host?.shadowRoot) return false;
           return host.shadowRoot.querySelector('[data-air-el="page-note-textarea"]') !== null;
         }),

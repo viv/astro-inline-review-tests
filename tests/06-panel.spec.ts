@@ -22,7 +22,7 @@ test.describe('Review panel', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -36,7 +36,7 @@ test.describe('Review panel', () => {
     // to flush with viewport edge — wait until right edge stabilises near viewport width)
     await expect.poll(async () => {
       return page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return false;
         const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
         if (!panel) return false;
@@ -47,7 +47,7 @@ test.describe('Review panel', () => {
 
     // Panel should be positioned on the right side of the viewport
     const panelRect = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       if (!panel) return null;
@@ -67,7 +67,7 @@ test.describe('Review panel', () => {
     await openPanel(page);
 
     const panelWidth = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       return panel?.getBoundingClientRect().width ?? null;
@@ -121,7 +121,7 @@ test.describe('Review panel', () => {
     // Should show annotations from both pages
     // Look for page URL groupings
     const panelContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
@@ -138,7 +138,7 @@ test.describe('Review panel', () => {
     await openPanel(page);
 
     const tabText = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const tab = host.shadowRoot.querySelector('[data-air-el="tab-this-page"]');
       return tab?.textContent ?? null;
@@ -204,7 +204,7 @@ test.describe('Review panel', () => {
 
     // The panel structure should have page notes section before annotation list
     const sectionOrder = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       if (!panel) return null;
@@ -222,7 +222,7 @@ test.describe('Review panel', () => {
     await switchPanelTab(page, 'this-page');
 
     const panelContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
@@ -247,7 +247,7 @@ test.describe('Review panel', () => {
 
     // The page notes section should indicate no notes exist
     const panelContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
@@ -281,7 +281,7 @@ test.describe('Review panel', () => {
     await openPanel(page);
 
     const panelWidth = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]') as HTMLElement;
       return panel?.getBoundingClientRect().width ?? null;
@@ -303,7 +303,7 @@ test.describe('Review panel', () => {
 
     // There should be a confirmation dialog or secondary button
     const panelContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;
@@ -387,7 +387,7 @@ test.describe('Review panel', () => {
     // Verify the panel content area has overflow-y set to auto or scroll,
     // which means it will scroll when content exceeds its height
     const overflowY = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panelContent = host.shadowRoot.querySelector(
         '[data-air-el="panel-content"]',
@@ -419,7 +419,7 @@ test.describe('Review panel', () => {
 
     // Check that the panel content is actually scrollable now
     const scrollInfo = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panelContent = host.shadowRoot.querySelector(
         '[data-air-el="panel-content"]',

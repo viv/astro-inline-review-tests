@@ -44,7 +44,7 @@ export async function selectText(page: Page, text: string): Promise<void> {
       const rawContent = node.textContent ?? '';
 
       // Skip nodes inside the shadow DOM host
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (host?.contains(node)) continue;
 
       // Try exact match first, then normalised match
@@ -137,7 +137,7 @@ export async function selectTextAcrossElements(
       let endOffset = 0;
       let node: Text | null;
 
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
 
       while ((node = walker.nextNode() as Text | null)) {
         if (host?.contains(node)) continue;
@@ -302,7 +302,7 @@ export async function switchPanelTab(page: Page, tab: 'this-page' | 'all-pages')
   // Wait for content to render — either annotation items, page note items,
   // or an empty state message.
   await page.waitForFunction(() => {
-    const host = document.getElementById('astro-inline-review-host');
+    const host = document.getElementById('review-loop-host');
     if (!host?.shadowRoot) return false;
     const content = host.shadowRoot.querySelector('[data-air-el="panel-content"]');
     if (!content) return false;
@@ -443,9 +443,9 @@ export function readReviewStore(): {
 export async function waitForIntegration(page: Page): Promise<void> {
   // The host div is zero-dimensional (all UI is position:fixed inside shadow root),
   // so we wait for it to be attached to the DOM rather than visible.
-  await page.waitForSelector(`#astro-inline-review-host`, { state: 'attached', timeout: 10_000 });
+  await page.waitForSelector(`#review-loop-host`, { state: 'attached', timeout: 10_000 });
   // Also wait for the FAB to be visible — confirms the client script has fully initialised.
-  await page.locator('#astro-inline-review-host').locator('[data-air-el="fab"]').waitFor({ state: 'visible', timeout: 10_000 });
+  await page.locator('#review-loop-host').locator('[data-air-el="fab"]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 /**

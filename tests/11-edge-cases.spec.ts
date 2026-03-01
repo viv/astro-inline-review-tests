@@ -20,7 +20,7 @@ test.describe('Edge cases', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -101,7 +101,7 @@ test.describe('Edge cases', () => {
     await expectPopupVisible(page);
 
     const noteValue = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return textarea?.value ?? null;
@@ -116,7 +116,7 @@ test.describe('Edge cases', () => {
 
     // Verify there's exactly one host
     const hostCount = await page.evaluate(() => {
-      return document.querySelectorAll('#astro-inline-review-host').length;
+      return document.querySelectorAll('#review-loop-host').length;
     });
     expect(hostCount).toBe(1);
 
@@ -128,7 +128,7 @@ test.describe('Edge cases', () => {
 
     // Should still be exactly one host
     const hostCountAfter = await page.evaluate(() => {
-      return document.querySelectorAll('#astro-inline-review-host').length;
+      return document.querySelectorAll('#review-loop-host').length;
     });
     expect(hostCountAfter).toBe(1);
   });
@@ -198,7 +198,7 @@ test.describe('Edge cases', () => {
     );
 
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return;
       const btn =
         host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
@@ -264,7 +264,7 @@ test.describe('Edge cases', () => {
     await firstHighlight.click();
 
     const noteValue = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const ta = host.shadowRoot.querySelector(
         '[data-air-el="popup-textarea"]',
@@ -337,7 +337,7 @@ test.describe('Edge cases', () => {
     await expectPopupVisible(page);
 
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return;
       const btn =
         host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||

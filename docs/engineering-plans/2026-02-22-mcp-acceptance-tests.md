@@ -12,7 +12,7 @@ tags: [mcp, acceptance-tests, playwright, agent-integration]
 
 ## Context
 
-The `astro-inline-review` component now includes an MCP server (Sessions 1–7 of the MCP engineering plan) with six tools, data model extensions (`resolvedAt`, `replies`), and browser UI updates to display resolved state and agent replies. No acceptance tests exist for any of this.
+The `review-loop` component now includes an MCP server (Sessions 1–7 of the MCP engineering plan) with six tools, data model extensions (`resolvedAt`, `replies`), and browser UI updates to display resolved state and agent replies. No acceptance tests exist for any of this.
 
 ### What Changed in the Component
 
@@ -340,7 +340,7 @@ The XPath/offset values should be calibrated to the actual fixture content in a 
 ## Entry Point
 
 - Component repo: MCP features on `main`, pushed (commit `6122c27`)
-- Test repo: `main` branch, fixture uses linked/installed `astro-inline-review`
+- Test repo: `main` branch, fixture uses linked/installed `review-loop`
 - May need `npm install` or `npm link` to pick up latest component changes
 
 ## Exit Point

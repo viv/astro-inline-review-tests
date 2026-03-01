@@ -26,7 +26,7 @@ test.describe('Annotation dismissal', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -178,8 +178,8 @@ test.describe('Annotation dismissal', () => {
     // Give time for any errors to surface
     await page.waitForTimeout(500);
 
-    // Filter out expected errors (if any) — we only care about astro-inline-review errors
-    const reviewErrors = errors.filter(e => e.includes('astro-inline-review'));
+    // Filter out expected errors (if any) — we only care about review-loop errors
+    const reviewErrors = errors.filter(e => e.includes('review-loop'));
     expect(reviewErrors).toHaveLength(0);
   });
 });

@@ -12,7 +12,7 @@ tags: [export, button, acceptance-tests, playwright]
 
 ## Context
 
-The main `astro-inline-review` component now has a "Copy All" button in the
+The main `review-loop` component now has a "Copy All" button in the
 panel header (between "+ Note" and "Clear All"). This was added in commit
 `1033ba1` to make export discoverable without needing the keyboard shortcut.
 
@@ -135,7 +135,7 @@ This is a single-session task:
 ## Entry Point
 
 - Main component is on `main` branch with the export button already shipped
-- Test repo fixture uses `astro-inline-review` from the component repo
+- Test repo fixture uses `review-loop` from the component repo
 - No fixture changes needed — the button appears automatically
 
 ## Exit Point

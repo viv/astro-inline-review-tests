@@ -40,7 +40,7 @@ test.describe('Production safety', () => {
       const content = fs.readFileSync(htmlFile, 'utf-8');
 
       // Should not contain the integration's client script
-      expect(content).not.toContain('astro-inline-review');
+      expect(content).not.toContain('review-loop');
       expect(content).not.toContain('inline-review');
       expect(content).not.toContain('air-fab');
       expect(content).not.toContain('__inline-review');
@@ -54,7 +54,7 @@ test.describe('Production safety', () => {
       const content = fs.readFileSync(htmlFile, 'utf-8');
 
       // Should not contain the shadow DOM host
-      expect(content).not.toContain('astro-inline-review-host');
+      expect(content).not.toContain('review-loop-host');
     }
   });
 

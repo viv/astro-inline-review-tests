@@ -13,7 +13,7 @@ test.describe('Page notes', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -26,7 +26,7 @@ test.describe('Page notes', () => {
 
     // Verify the note text is visible in the panel
     const noteText = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
@@ -65,7 +65,7 @@ test.describe('Page notes', () => {
 
     // Verify the edit
     const noteText = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
@@ -104,7 +104,7 @@ test.describe('Page notes', () => {
     await expectPageNoteCount(page, 1);
 
     const noteText = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const noteItem = host.shadowRoot.querySelector('[data-air-el="page-note-item"]');
       return noteItem?.textContent ?? null;
@@ -231,7 +231,7 @@ test.describe('Page notes', () => {
     await switchPanelTab(page, 'all-pages');
 
     const panelContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const panel = host.shadowRoot.querySelector('[data-air-el="panel"]');
       return panel?.textContent ?? null;

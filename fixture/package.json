@@ -1,5 +1,5 @@
 {
-  "name": "astro-inline-review-fixture",
+  "name": "review-loop-fixture",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -12,6 +12,6 @@
     "astro": "^5.0.0"
   },
   "devDependencies": {
-    "astro-inline-review": "file:../../astro-inline-review"
+    "review-loop": "file:../../review-loop"
   }
 }

@@ -17,7 +17,7 @@ test.describe('Text selection and annotation popup', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -37,7 +37,7 @@ test.describe('Text selection and annotation popup', () => {
       const range = selection.getRangeAt(0);
       const selRect = range.getBoundingClientRect();
 
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector('[data-air-el="popup"]') as HTMLElement;
       if (!popup) return null;
@@ -125,7 +125,7 @@ test.describe('Text selection and annotation popup', () => {
     // Try to interact with text inside the shadow DOM host
     // The integration should not create annotations on its own UI
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return;
       // Try to select text inside shadow root (if any text exists)
       const textNodes: Text[] = [];
@@ -162,7 +162,7 @@ test.describe('Text selection and annotation popup', () => {
     // inside the popup. The popup auto-focuses the textarea on show, so we
     // must explicitly move focus away to simulate the user not interacting.
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (host?.shadowRoot) {
         const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLElement;
         textarea?.blur();
@@ -186,7 +186,7 @@ test.describe('Text selection and annotation popup', () => {
 
     // The textarea is auto-focused on show — verify it still has focus
     const hasFocus = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return false;
       const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]');
       return host.shadowRoot.activeElement === textarea;
@@ -206,7 +206,7 @@ test.describe('Text selection and annotation popup', () => {
 
     // The popup should contain or reference the selected text
     const popupText = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector('[data-air-el="popup"]');
       return popup?.textContent ?? null;
@@ -223,7 +223,7 @@ test.describe('Text selection and annotation popup', () => {
 
     // The popup preview should truncate long text rather than showing it all
     const popupContent = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector('[data-air-el="popup"]');
       return popup?.textContent ?? null;
@@ -239,7 +239,7 @@ test.describe('Text selection and annotation popup', () => {
 
     // The textarea should be focused for immediate typing
     const isFocused = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return false;
       const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]');
       return host.shadowRoot.activeElement === textarea;
@@ -262,7 +262,7 @@ test.describe('Text selection and annotation popup', () => {
 
     // The popup's bottom edge must not exceed the viewport height
     const positions = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector(
         '[data-air-el="popup"]',
@@ -293,7 +293,7 @@ test.describe('Text selection and annotation popup', () => {
     await expectPopupVisible(page);
 
     const positions = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector(
         '[data-air-el="popup"]',
@@ -321,7 +321,7 @@ test.describe('Text selection and annotation popup', () => {
     await expectPopupVisible(page);
 
     const positions = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const popup = host.shadowRoot.querySelector(
         '[data-air-el="popup"]',

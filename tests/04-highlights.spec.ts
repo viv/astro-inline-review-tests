@@ -19,7 +19,7 @@ test.describe('Highlights', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -116,7 +116,7 @@ test.describe('Highlights', () => {
 
     // The popup should be pre-filled with the existing note
     const textareaValue = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const textarea = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return textarea?.value ?? null;
@@ -149,7 +149,7 @@ test.describe('Highlights', () => {
     await expectPopupVisible(page);
 
     const updatedValue = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const ta = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return ta?.value ?? null;
@@ -170,7 +170,7 @@ test.describe('Highlights', () => {
 
     // Look for a delete button in the popup
     const deleteBtn = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return false;
       // Try common selectors for delete button
       const btn =
@@ -271,7 +271,7 @@ test.describe('Highlights', () => {
     );
 
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return;
       const btn =
         host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||

@@ -2,7 +2,7 @@ import { type Page, expect } from '@playwright/test';
 import { shadowLocator, shadowQueryCount, getHighlights, getElementHighlights, SELECTORS } from './selectors';
 
 /**
- * Custom assertion helpers for astro-inline-review acceptance tests.
+ * Custom assertion helpers for review-loop acceptance tests.
  * All assertions interact through the browser — no source code imports.
  */
 
@@ -10,7 +10,7 @@ import { shadowLocator, shadowQueryCount, getHighlights, getElementHighlights, S
  * Assert that the shadow DOM host element exists on the page.
  */
 export async function expectHostExists(page: Page): Promise<void> {
-  const host = page.locator(`#astro-inline-review-host`);
+  const host = page.locator(`#review-loop-host`);
   await expect(host).toBeAttached();
 }
 
@@ -18,7 +18,7 @@ export async function expectHostExists(page: Page): Promise<void> {
  * Assert that the shadow DOM host does NOT exist on the page.
  */
 export async function expectHostNotExists(page: Page): Promise<void> {
-  const host = page.locator(`#astro-inline-review-host`);
+  const host = page.locator(`#review-loop-host`);
   await expect(host).not.toBeAttached();
 }
 
@@ -220,7 +220,7 @@ export async function expectElementAnnotationItemCount(page: Page, count: number
 export async function expectAnnotationOrphanIndicator(page: Page, count: number): Promise<void> {
   await expect.poll(async () => {
     return page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       return host?.shadowRoot?.querySelectorAll('.air-annotation-item__orphan').length ?? 0;
     });
   }, {

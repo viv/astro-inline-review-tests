@@ -1,15 +1,15 @@
-# astro-inline-review-tests
+# review-loop-tests
 
-[![Acceptance Tests](https://github.com/viv/astro-inline-review-tests/actions/workflows/ci.yml/badge.svg)](https://github.com/viv/astro-inline-review-tests/actions/workflows/ci.yml)
+[![Acceptance Tests](https://github.com/viv/review-loop-tests/actions/workflows/ci.yml/badge.svg)](https://github.com/viv/review-loop-tests/actions/workflows/ci.yml)
 
-Playwright acceptance test suite for [astro-inline-review](https://github.com/viv/astro-inline-review), the bridge between human reviewers and coding agents for Astro sites.
+Playwright acceptance test suite for [review-loop](https://github.com/viv/review-loop), the bridge between human reviewers and coding agents for Astro sites.
 
 This repo is kept separate from the main package so the acceptance tests can exercise the integration as an external consumer would, installing from npm and running against a real Astro dev server.
 
 ## Prerequisites
 
 - Node.js >= 18
-- The main `astro-inline-review` repo cloned as a sibling directory (for local development)
+- The main `review-loop` repo cloned as a sibling directory (for local development)
 
 ## Setup
 
@@ -18,7 +18,7 @@ npm install
 npx playwright install chromium
 ```
 
-The test fixture in `fixture/` is a minimal Astro site that uses `astro-inline-review` as a dev dependency. During local development it references the sibling directory via a file dependency.
+The test fixture in `fixture/` is a minimal Astro site that uses `review-loop` as a dev dependency. During local development it references the sibling directory via a file dependency.
 
 ## Running Tests
 

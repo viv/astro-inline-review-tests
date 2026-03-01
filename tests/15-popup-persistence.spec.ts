@@ -32,7 +32,7 @@ test.describe('Popup persistence across reloads', () => {
     cleanReviewData();
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.removeItem('astro-inline-review');
+      localStorage.removeItem('review-loop');
       sessionStorage.removeItem('air-pending-popup');
       sessionStorage.removeItem('air-panel-state');
       sessionStorage.removeItem('air-scroll-to');
@@ -60,7 +60,7 @@ test.describe('Popup persistence across reloads', () => {
       // Popup should be restored with the typed note
       await expectPopupVisible(page);
       const restoredValue = await page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return null;
         const ta = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
         return ta?.value ?? null;
@@ -152,7 +152,7 @@ test.describe('Popup persistence across reloads', () => {
       // Popup should be restored
       await expectPopupVisible(page);
       const restoredValue = await page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return null;
         const ta = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
         return ta?.value ?? null;

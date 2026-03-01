@@ -28,7 +28,7 @@ test.describe('Element annotations', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -81,7 +81,7 @@ test.describe('Element annotations', () => {
       await holdAlt(page);
 
       // Hover over the shadow DOM host element
-      const host = page.locator('#astro-inline-review-host');
+      const host = page.locator('#review-loop-host');
       await host.hover({ force: true });
 
       // Inspector overlay should NOT appear
@@ -127,7 +127,7 @@ test.describe('Element annotations', () => {
 
       // The popup should show the element description, which includes the tag name
       const popupText = await page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return null;
         const popup = host.shadowRoot.querySelector('[data-air-el="popup"]');
         return popup?.textContent ?? null;
@@ -322,7 +322,7 @@ test.describe('Element annotations', () => {
 
       // The item should mention the element type
       const itemText = await page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return null;
         const item = host.shadowRoot.querySelector('[data-air-el="element-annotation-item"]');
         return item?.textContent ?? null;
@@ -572,7 +572,7 @@ test.describe('Element annotations', () => {
 
       // Check the tooltip text
       const tooltipText = await page.evaluate(() => {
-        const host = document.getElementById('astro-inline-review-host');
+        const host = document.getElementById('review-loop-host');
         if (!host?.shadowRoot) return null;
         const tooltip = host.shadowRoot.querySelector('[data-air-el="first-use-tooltip"]');
         return tooltip?.textContent ?? null;

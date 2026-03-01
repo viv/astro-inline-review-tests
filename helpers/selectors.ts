@@ -1,10 +1,10 @@
 import { type Page, type Locator } from '@playwright/test';
 
 /**
- * Shadow DOM query helpers for astro-inline-review.
+ * Shadow DOM query helpers for review-loop.
  *
  * The integration creates a single host element:
- *   <div id="astro-inline-review-host"> with an open shadow root.
+ *   <div id="review-loop-host"> with an open shadow root.
  *
  * All UI (FAB, panel, popup) lives inside the shadow root.
  * Highlights (<mark>) live in the light DOM with data-air-id attributes.
@@ -15,7 +15,7 @@ import { type Page, type Locator } from '@playwright/test';
  */
 
 /** The shadow DOM host element ID */
-export const HOST_ID = 'astro-inline-review-host';
+export const HOST_ID = 'review-loop-host';
 
 /** Stable selectors using data-air-el attributes (automation contract) */
 export const SELECTORS = {

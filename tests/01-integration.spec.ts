@@ -9,16 +9,16 @@ test.describe('Integration basics', () => {
   });
 
   test('shadow DOM host element exists on the page', async ({ page }) => {
-    // The integration should create a <div id="astro-inline-review-host"> with an open shadow root
+    // The integration should create a <div id="review-loop-host"> with an open shadow root
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
 
     await expectHostExists(page);
 
     // Verify it has an open shadow root
     const hasShadowRoot = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       return host?.shadowRoot !== null && host?.shadowRoot !== undefined;
     });
     expect(hasShadowRoot).toBe(true);
@@ -27,12 +27,12 @@ test.describe('Integration basics', () => {
   test('client script is injected on the page', async ({ page }) => {
     // The integration uses injectScript('page', ...) to add client-side JS
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
 
     // Verify the FAB exists inside shadow DOM as proof the script ran
     const fabExists = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return false;
       return host.shadowRoot.querySelector('[data-air-el="fab"]') !== null;
     });
@@ -43,7 +43,7 @@ test.describe('Integration basics', () => {
     const errors = createConsoleErrorCollector(page);
 
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
 
     // Allow a short delay for any async errors to surface
@@ -55,7 +55,7 @@ test.describe('Integration basics', () => {
   test('integration does not modify existing page content', async ({ page }) => {
     // Capture the page content structure before the integration injects
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
 
     // Verify known content paragraphs are intact

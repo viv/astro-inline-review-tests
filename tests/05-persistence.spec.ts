@@ -20,7 +20,7 @@ test.describe('Persistence', () => {
   test.beforeEach(async ({ page }) => {
     cleanReviewData();
     await page.goto('/');
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
     await waitForIntegration(page);
   });
 
@@ -28,7 +28,7 @@ test.describe('Persistence', () => {
     await createAnnotation(page, 'quick brown fox', 'Cache test');
 
     const cacheData = await page.evaluate(() => {
-      const raw = localStorage.getItem('astro-inline-review');
+      const raw = localStorage.getItem('review-loop');
       if (!raw) return null;
       return JSON.parse(raw);
     });
@@ -96,7 +96,7 @@ test.describe('Persistence', () => {
 
     // Corrupt localStorage but leave JSON file intact
     await page.evaluate(() => {
-      localStorage.setItem('astro-inline-review', 'CORRUPTED DATA {{{');
+      localStorage.setItem('review-loop', 'CORRUPTED DATA {{{');
     });
 
     // Reload — should fall back to server API
@@ -137,7 +137,7 @@ test.describe('Persistence', () => {
     );
 
     await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return;
       const btn =
         host.shadowRoot.querySelector('[data-air-el="popup-delete"]') ||
@@ -186,7 +186,7 @@ test.describe('Persistence', () => {
     await restoredHighlight.click();
 
     const value = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const ta = host.shadowRoot.querySelector('[data-air-el="popup-textarea"]') as HTMLTextAreaElement;
       return ta?.value ?? null;
@@ -221,7 +221,7 @@ test.describe('Persistence', () => {
     writeReviewJson(JSON.stringify(jsonData, null, 2));
 
     // Clear localStorage cache so the component fetches from the (modified) JSON file
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
 
     // Reload — restoreHighlights should fail Tier 1, succeed Tier 2
     await page.reload();
@@ -261,7 +261,7 @@ test.describe('Persistence', () => {
     writeReviewJson(JSON.stringify(jsonData, null, 2));
 
     // Clear localStorage so the component fetches from the modified JSON
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
 
     // Reload — both Tier 1 and Tier 2 fail, annotation becomes orphaned (Tier 3)
     await page.reload();
@@ -287,7 +287,7 @@ test.describe('Persistence', () => {
     writeReviewJson(JSON.stringify({ version: 2, data: 'wrong shape' }));
 
     // Also clear localStorage so the client can't fall back to cache
-    await page.evaluate(() => localStorage.removeItem('astro-inline-review'));
+    await page.evaluate(() => localStorage.removeItem('review-loop'));
 
     // Reload — server should reject the invalid schema and return an empty store
     await page.reload();
@@ -334,7 +334,7 @@ test.describe('Persistence', () => {
 
     // Clear localStorage so the client fetches from the modified JSON file
     await page.evaluate(() =>
-      localStorage.removeItem('astro-inline-review'),
+      localStorage.removeItem('review-loop'),
     );
 
     // Reload the page
@@ -350,7 +350,7 @@ test.describe('Persistence', () => {
     await expectPopupVisible(page);
 
     const noteValue = await page.evaluate(() => {
-      const host = document.getElementById('astro-inline-review-host');
+      const host = document.getElementById('review-loop-host');
       if (!host?.shadowRoot) return null;
       const ta = host.shadowRoot.querySelector(
         '[data-air-el="popup-textarea"]',
@@ -387,7 +387,7 @@ test.describe('Persistence', () => {
 
     // Clear localStorage and reload
     await page.evaluate(() =>
-      localStorage.removeItem('astro-inline-review'),
+      localStorage.removeItem('review-loop'),
     );
     await page.reload();
     await waitForIntegration(page);
@@ -409,7 +409,7 @@ test.describe('Persistence', () => {
     // Tab 1: navigate and create an annotation
     await tab1.goto('http://localhost:4399/');
     await tab1.evaluate(() =>
-      localStorage.removeItem('astro-inline-review'),
+      localStorage.removeItem('review-loop'),
     );
     await waitForIntegration(tab1);
     await createAnnotation(tab1, 'quick brown fox', 'Tab 1 note');
@@ -418,7 +418,7 @@ test.describe('Persistence', () => {
     // Tab 2: navigate to the same page
     await tab2.goto('http://localhost:4399/');
     await tab2.evaluate(() =>
-      localStorage.removeItem('astro-inline-review'),
+      localStorage.removeItem('review-loop'),
     );
     await waitForIntegration(tab2);
 
