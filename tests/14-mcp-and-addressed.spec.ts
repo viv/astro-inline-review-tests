@@ -180,6 +180,11 @@ test.describe('MCP addressed state and agent replies', () => {
             message: 'Agent response text',
             createdAt: new Date().toISOString(),
           },
+          {
+            message: 'Reviewer follow-up',
+            createdAt: new Date().toISOString(),
+            role: 'reviewer',
+          },
         ],
       });
 
@@ -189,16 +194,19 @@ test.describe('MCP addressed state and agent replies', () => {
       const note = shadowLocator(page, '.air-annotation-item__note');
       await expect(note).toContainText('My reviewer note');
 
-      // The agent reply
-      const reply = shadowLocator(page, '[data-air-el="agent-reply"]');
-      await expect(reply).toContainText('Agent response text');
+      // Agent reply should be blue
+      const agentReply = shadowLocator(page, '[data-air-el="agent-reply"]');
+      await expect(agentReply).toContainText('Agent response text');
+      await expect(agentReply).toHaveCSS('border-left-color', 'rgb(96, 165, 250)');
+      const agentPrefix = agentReply.locator('.air-annotation-item__reply-prefix');
+      await expect(agentPrefix).toHaveCSS('color', 'rgb(96, 165, 250)');
 
-      // Reply should have a distinct left border (green)
-      await expect(reply).toHaveCSS('border-left-color', 'rgb(34, 197, 94)');
-
-      // Reply prefix should be styled differently from the note
-      const prefix = reply.locator('.air-annotation-item__reply-prefix');
-      await expect(prefix).toHaveCSS('color', 'rgb(34, 197, 94)');
+      // Reviewer reply should be green
+      const reviewerReply = shadowLocator(page, '[data-air-el="reviewer-reply"]');
+      await expect(reviewerReply).toContainText('Reviewer follow-up');
+      await expect(reviewerReply).toHaveCSS('border-left-color', 'rgb(34, 197, 94)');
+      const reviewerPrefix = reviewerReply.locator('.air-annotation-item__reply-prefix');
+      await expect(reviewerPrefix).toHaveCSS('color', 'rgb(34, 197, 94)');
     });
   });
 
