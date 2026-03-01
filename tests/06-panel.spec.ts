@@ -309,11 +309,12 @@ test.describe('Review panel', () => {
       return panel?.textContent ?? null;
     });
 
-    // Should show confirmation text
+    // Should show confirmation text ("Sure?" is the two-click confirmation)
     const hasConfirmation =
       panelContent?.toLowerCase().includes('confirm') ||
       panelContent?.toLowerCase().includes('are you sure') ||
-      panelContent?.toLowerCase().includes('delete all');
+      panelContent?.toLowerCase().includes('delete all') ||
+      panelContent?.toLowerCase().includes('sure?');
 
     expect(hasConfirmation).toBe(true);
   });
